@@ -90,7 +90,9 @@ public class CameraMonitorItem extends Item
 
         if (level.isClientSide)
         {
-            Vec3 viewPos = Vec3.atCenterOf(cameraPos).add(0.0D, 0.15D, 0.0D);
+            // Offset the viewpoint just in front of the lens so the camera's own model doesn't block the view
+            Vec3 facing = Vec3.directionFromRotation(0.0F, yaw);
+            Vec3 viewPos = Vec3.atCenterOf(cameraPos).add(facing.scale(0.6D));
             DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientCameraHooks.activate(viewPos, yaw, 15.0F));
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
