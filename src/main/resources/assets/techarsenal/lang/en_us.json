@@ -1,0 +1,22 @@
+{
+  "itemGroup.techarsenal": "Tech Arsenal",
+  "block.techarsenal.security_camera": "Security Camera",
+  "item.techarsenal.camera_monitor": "Camera Monitor",
+  "item.techarsenal.satellite_remote": "Satellite Remote",
+  "item.techarsenal.missile_launcher": "Missile Launcher",
+  "item.techarsenal.guided_missile": "Guided Missile",
+  "item.techarsenal.drone": "Combat Drone",
+  "item.techarsenal.drone_bolt": "Drone Bolt",
+  "entity.techarsenal.camera": "Camera",
+  "entity.techarsenal.guided_missile": "Guided Missile",
+  "entity.techarsenal.drone": "Combat Drone",
+  "entity.techarsenal.drone_bolt": "Drone Bolt",
+  "message.techarsenal.camera_linked": "Camera linked: %s, %s, %s",
+  "message.techarsenal.camera_not_linked": "No camera linked. Right-click a security camera first.",
+  "message.techarsenal.camera_missing": "The linked camera no longer exists.",
+  "message.techarsenal.camera_out_of_range": "Camera is out of range (max 64 blocks).",
+  "message.techarsenal.camera_exit_hint": "Press Sneak to exit camera view",
+  "message.techarsenal.no_ammo": "No guided missiles in inventory.",
+  "tooltip.techarsenal.camera_monitor.linked": "Linked: %s, %s, %s",
+  "tooltip.techarsenal.camera_monitor.unlinked": "Right-click a security camera to link"
+}

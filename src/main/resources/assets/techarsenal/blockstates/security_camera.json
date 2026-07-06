@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "techarsenal:block/security_camera" },
+    "facing=east": { "model": "techarsenal:block/security_camera", "y": 90 },
+    "facing=south": { "model": "techarsenal:block/security_camera", "y": 180 },
+    "facing=west": { "model": "techarsenal:block/security_camera", "y": 270 }
+  }
+}

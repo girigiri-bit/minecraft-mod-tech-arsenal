@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " N ",
+    " P ",
+    " R "
+  ],
+  "key": {
+    "N": { "item": "minecraft:iron_nugget" },
+    "P": { "item": "minecraft:gunpowder" },
+    "R": { "item": "minecraft:redstone" }
+  },
+  "result": {
+    "item": "techarsenal:guided_missile",
+    "count": 2
+  }
+}
