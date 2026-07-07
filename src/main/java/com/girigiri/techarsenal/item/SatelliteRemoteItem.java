@@ -13,7 +13,7 @@ import net.minecraftforge.fml.DistExecutor;
 
 public class SatelliteRemoteItem extends Item
 {
-    private static final double SATELLITE_HEIGHT = 80.0D;
+    public static final double SATELLITE_HEIGHT = 80.0D;
 
     public SatelliteRemoteItem(Properties properties)
     {
@@ -23,12 +23,9 @@ public class SatelliteRemoteItem extends Item
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand)
     {
+        // Viewing is bound to a dedicated key — see ClientCameraHooks
         if (level.isClientSide)
-        {
-            Vec3 viewPos = new Vec3(player.getX(), player.getEyeY() + SATELLITE_HEIGHT, player.getZ());
-            float yaw = player.getYRot();
-            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientCameraHooks.activate(viewPos, yaw, 90.0F, "SAT"));
-        }
+            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> ClientCameraHooks::showViewKeyHint);
         return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide);
     }
 }

@@ -27,10 +27,10 @@ import java.util.List;
 
 public class CameraMonitorItem extends Item
 {
-    private static final String TAG_POS = "CameraPos";
-    private static final String TAG_YAW = "CameraYaw";
-    private static final String TAG_ID = "CameraId";
-    private static final double MAX_VIEW_DISTANCE = 64.0D;
+    public static final String TAG_POS = "CameraPos";
+    public static final String TAG_YAW = "CameraYaw";
+    public static final String TAG_ID = "CameraId";
+    public static final double MAX_VIEW_DISTANCE = 64.0D;
 
     public CameraMonitorItem(Properties properties)
     {
@@ -65,42 +65,11 @@ public class CameraMonitorItem extends Item
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand)
     {
-        ItemStack stack = player.getItemInHand(hand);
-        CompoundTag tag = stack.getTag();
-
-        if (tag == null || !tag.contains(TAG_POS))
-        {
-            if (!level.isClientSide)
-                player.displayClientMessage(Component.translatable("message.techarsenal.camera_not_linked"), true);
-            return InteractionResultHolder.fail(stack);
-        }
-
-        BlockPos cameraPos = BlockPos.of(tag.getLong(TAG_POS));
-        float yaw = tag.getFloat(TAG_YAW);
-
-        if (!(level.getBlockState(cameraPos).getBlock() instanceof SecurityCameraBlock))
-        {
-            if (!level.isClientSide)
-                player.displayClientMessage(Component.translatable("message.techarsenal.camera_missing"), true);
-            return InteractionResultHolder.fail(stack);
-        }
-
-        if (player.distanceToSqr(Vec3.atCenterOf(cameraPos)) > MAX_VIEW_DISTANCE * MAX_VIEW_DISTANCE)
-        {
-            if (!level.isClientSide)
-                player.displayClientMessage(Component.translatable("message.techarsenal.camera_out_of_range"), true);
-            return InteractionResultHolder.fail(stack);
-        }
-
+        // Viewing is bound to a dedicated key so right-click can't lock the
+        // player into camera view by accident — just point at the keybind
         if (level.isClientSide)
-        {
-            // Offset the viewpoint just in front of the lens so the camera's own model doesn't block the view
-            Vec3 facing = Vec3.directionFromRotation(0.0F, yaw);
-            Vec3 viewPos = Vec3.atCenterOf(cameraPos).add(facing.scale(0.6D));
-            String label = tag.contains(TAG_ID) ? "CAM-" + tag.getInt(TAG_ID) : "CAM";
-            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientCameraHooks.activate(viewPos, yaw, 15.0F, label));
-        }
-        return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
+            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> ClientCameraHooks::showViewKeyHint);
+        return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide);
     }
 
     @Override
