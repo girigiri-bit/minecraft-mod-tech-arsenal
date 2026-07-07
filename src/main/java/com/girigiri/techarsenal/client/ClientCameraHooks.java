@@ -24,6 +24,7 @@ import javax.annotation.Nullable;
 public final class ClientCameraHooks
 {
     private static boolean active;
+    private static String activeLabel = "";
     @Nullable
     private static CameraEntity camera;
     @Nullable
@@ -48,6 +49,7 @@ public final class ClientCameraHooks
         entity.xRotO = pitch;
 
         camera = entity;
+        activeLabel = label;
         previousCameraType = mc.options.getCameraType();
         mc.options.setCameraType(CameraType.FIRST_PERSON);
         mc.setCameraEntity(entity);
@@ -87,7 +89,16 @@ public final class ClientCameraHooks
         }
 
         if (mc.options.keyShift.isDown())
+        {
             deactivate();
+            return;
+        }
+
+        // Keep the exit hint visible for the whole camera session — the action
+        // bar fades after a few seconds and players otherwise look "stuck"
+        if (mc.level.getGameTime() % 40L == 0L)
+            mc.player.displayClientMessage(
+                    Component.translatable("message.techarsenal.camera_exit_hint_labeled", activeLabel), true);
     }
 
     @SubscribeEvent
