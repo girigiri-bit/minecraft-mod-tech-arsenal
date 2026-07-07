@@ -2,6 +2,7 @@ package com.girigiri.techarsenal.item;
 
 import com.girigiri.techarsenal.block.SecurityCameraBlock;
 import com.girigiri.techarsenal.client.ClientCameraHooks;
+import com.girigiri.techarsenal.world.CameraRegistry;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -28,6 +29,7 @@ public class CameraMonitorItem extends Item
 {
     private static final String TAG_POS = "CameraPos";
     private static final String TAG_YAW = "CameraYaw";
+    private static final String TAG_ID = "CameraId";
     private static final double MAX_VIEW_DISTANCE = 64.0D;
 
     public CameraMonitorItem(Properties properties)
@@ -45,13 +47,15 @@ public class CameraMonitorItem extends Item
 
         if (state.getBlock() instanceof SecurityCameraBlock && player != null)
         {
-            if (!level.isClientSide)
+            if (!level.isClientSide && level instanceof net.minecraft.server.level.ServerLevel serverLevel)
             {
+                int id = CameraRegistry.get(serverLevel).getOrAssign(pos);
                 CompoundTag tag = context.getItemInHand().getOrCreateTag();
                 tag.putLong(TAG_POS, pos.asLong());
                 tag.putFloat(TAG_YAW, state.getValue(HorizontalDirectionalBlock.FACING).toYRot());
+                tag.putInt(TAG_ID, id);
                 player.displayClientMessage(Component.translatable("message.techarsenal.camera_linked",
-                        pos.getX(), pos.getY(), pos.getZ()), true);
+                        id, pos.getX(), pos.getY(), pos.getZ()), true);
             }
             return InteractionResult.sidedSuccess(level.isClientSide);
         }
@@ -93,7 +97,8 @@ public class CameraMonitorItem extends Item
             // Offset the viewpoint just in front of the lens so the camera's own model doesn't block the view
             Vec3 facing = Vec3.directionFromRotation(0.0F, yaw);
             Vec3 viewPos = Vec3.atCenterOf(cameraPos).add(facing.scale(0.6D));
-            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientCameraHooks.activate(viewPos, yaw, 15.0F));
+            String label = tag.contains(TAG_ID) ? "CAM-" + tag.getInt(TAG_ID) : "CAM";
+            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientCameraHooks.activate(viewPos, yaw, 15.0F, label));
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
     }

@@ -1,5 +1,6 @@
 package com.girigiri.techarsenal;
 
+import com.girigiri.techarsenal.registry.ModBlockEntities;
 import com.girigiri.techarsenal.registry.ModBlocks;
 import com.girigiri.techarsenal.registry.ModCreativeTabs;
 import com.girigiri.techarsenal.registry.ModEntities;
@@ -23,6 +24,7 @@ public class TechArsenal
 
         ModBlocks.BLOCKS.register(modEventBus);
         ModItems.ITEMS.register(modEventBus);
+        ModBlockEntities.BLOCK_ENTITY_TYPES.register(modEventBus);
         ModEntities.ENTITY_TYPES.register(modEventBus);
         ModCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
 

@@ -33,7 +33,7 @@ public final class ClientCameraHooks
     {
     }
 
-    public static void activate(Vec3 pos, float yaw, float pitch)
+    public static void activate(Vec3 pos, float yaw, float pitch, String label)
     {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null || active)
@@ -53,7 +53,7 @@ public final class ClientCameraHooks
         mc.setCameraEntity(entity);
         active = true;
 
-        mc.player.displayClientMessage(Component.translatable("message.techarsenal.camera_exit_hint"), true);
+        mc.player.displayClientMessage(Component.translatable("message.techarsenal.camera_exit_hint_labeled", label), true);
     }
 
     public static void deactivate()

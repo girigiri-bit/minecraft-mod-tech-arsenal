@@ -2,7 +2,9 @@ package com.girigiri.techarsenal.client;
 
 import com.girigiri.techarsenal.TechArsenal;
 import com.girigiri.techarsenal.client.renderer.DroneRenderer;
+import com.girigiri.techarsenal.client.renderer.MonitorBlockEntityRenderer;
 import com.girigiri.techarsenal.client.renderer.NoopRenderer;
+import com.girigiri.techarsenal.registry.ModBlockEntities;
 import com.girigiri.techarsenal.registry.ModEntities;
 import net.minecraft.client.renderer.entity.ThrownItemRenderer;
 import net.minecraftforge.api.distmarker.Dist;
@@ -24,5 +26,6 @@ public final class ClientSetup
         event.registerEntityRenderer(ModEntities.GUIDED_MISSILE.get(), ThrownItemRenderer::new);
         event.registerEntityRenderer(ModEntities.DRONE_BOLT.get(), ThrownItemRenderer::new);
         event.registerEntityRenderer(ModEntities.DRONE.get(), DroneRenderer::new);
+        event.registerBlockEntityRenderer(ModBlockEntities.MONITOR.get(), MonitorBlockEntityRenderer::new);
     }
 }

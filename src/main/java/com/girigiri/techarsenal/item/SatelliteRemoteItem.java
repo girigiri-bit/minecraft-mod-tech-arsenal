@@ -27,7 +27,7 @@ public class SatelliteRemoteItem extends Item
         {
             Vec3 viewPos = new Vec3(player.getX(), player.getEyeY() + SATELLITE_HEIGHT, player.getZ());
             float yaw = player.getYRot();
-            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientCameraHooks.activate(viewPos, yaw, 90.0F));
+            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientCameraHooks.activate(viewPos, yaw, 90.0F, "SAT"));
         }
         return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide);
     }

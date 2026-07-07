@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "techarsenal:security_camera"
+    "techarsenal:security_camera",
+    "techarsenal:monitor"
   ]
 }

@@ -148,6 +148,46 @@ Write-Texture (Join-Path $itemDir "drone.png") @(
     "pp..........pp.."
 ) @{ p = @(90,95,105); x = @(50,52,60); a = @(60,62,70); d = @(45,47,55); g = @(120,124,132); r = @(220,60,60) }
 
+# --- block/monitor_front: dark screen with thin green frame ---
+Write-Texture (Join-Path $blockDir "monitor_front.png") @(
+    "dddddddddddddddd",
+    "deeeeeeeeeeeeeed",
+    "dekkkkkkkkkkkked",
+    "dekkkkkkkkkkkked",
+    "dekkgkkkkkkkkked",
+    "dekkkkkkkkkkkked",
+    "dekkkkkkkkkkkked",
+    "dekkkkkkgkkkkked",
+    "dekkkkkkkkkkkked",
+    "dekkkkkkkkkkkked",
+    "dekgkkkkkkkkkked",
+    "dekkkkkkkkkkkked",
+    "dekkkkkkkkkkkked",
+    "deeeeeeeeeeeeeed",
+    "dddddddddddddddd",
+    "dddddddddddddddd"
+) @{ d = @(52,54,60); e = @(40,90,60); k = @(10,14,18); g = @(30,60,45) }
+
+# --- block/monitor_side: dark metal casing ---
+Write-Texture (Join-Path $blockDir "monitor_side.png") @(
+    "dddddddddddddddd",
+    "dggggggggggggggd",
+    "dggggggggggggggd",
+    "dgssssssssssssgd",
+    "dgssssssssssssgd",
+    "dgssssssssssssgd",
+    "dgssssssssssssgd",
+    "dgssssssssssssgd",
+    "dgssssssssssssgd",
+    "dgssssssssssssgd",
+    "dgssssssssssssgd",
+    "dgssssssssssssgd",
+    "dgssssssssssssgd",
+    "dggggggggggggggd",
+    "dggggggggggggggd",
+    "dddddddddddddddd"
+) @{ d = @(45,47,55); g = @(80,83,92); s = @(65,68,77) }
+
 # --- item/drone_bolt: small yellow energy bolt ---
 Write-Texture (Join-Path $itemDir "drone_bolt.png") @(
     "................",

@@ -1,6 +1,7 @@
 package com.girigiri.techarsenal.registry;
 
 import com.girigiri.techarsenal.TechArsenal;
+import com.girigiri.techarsenal.block.MonitorBlock;
 import com.girigiri.techarsenal.block.SecurityCameraBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
@@ -20,4 +21,10 @@ public class ModBlocks
                     .strength(1.5F)
                     .sound(SoundType.METAL)
                     .noOcclusion()));
+
+    public static final RegistryObject<Block> MONITOR = BLOCKS.register("monitor",
+            () -> new MonitorBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)));
 }

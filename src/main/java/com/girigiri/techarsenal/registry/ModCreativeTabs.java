@@ -19,6 +19,7 @@ public class ModCreativeTabs
                     .icon(() -> ModItems.MISSILE_LAUNCHER.get().getDefaultInstance())
                     .displayItems((parameters, output) -> {
                         output.accept(ModItems.SECURITY_CAMERA.get());
+                        output.accept(ModItems.MONITOR.get());
                         output.accept(ModItems.CAMERA_MONITOR.get());
                         output.accept(ModItems.SATELLITE_REMOTE.get());
                         output.accept(ModItems.MISSILE_LAUNCHER.get());

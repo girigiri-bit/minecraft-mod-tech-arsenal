@@ -18,6 +18,9 @@ public class ModItems
     public static final RegistryObject<Item> SECURITY_CAMERA = ITEMS.register("security_camera",
             () -> new BlockItem(ModBlocks.SECURITY_CAMERA.get(), new Item.Properties()));
 
+    public static final RegistryObject<Item> MONITOR = ITEMS.register("monitor",
+            () -> new BlockItem(ModBlocks.MONITOR.get(), new Item.Properties()));
+
     public static final RegistryObject<Item> CAMERA_MONITOR = ITEMS.register("camera_monitor",
             () -> new CameraMonitorItem(new Item.Properties().stacksTo(1)));
 
