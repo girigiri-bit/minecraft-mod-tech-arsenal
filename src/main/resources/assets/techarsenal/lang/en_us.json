@@ -14,7 +14,7 @@
   "entity.techarsenal.drone_bolt": "Drone Bolt",
   "message.techarsenal.camera_placed": "Security Camera CAM-%s placed",
   "message.techarsenal.camera_linked": "CAM-%s linked: %s, %s, %s",
-  "message.techarsenal.camera_not_linked": "No camera linked. Right-click a security camera first.",
+  "message.techarsenal.camera_not_linked": "No camera linked: right-click a security camera to link (use the Monitor block for wall screens).",
   "message.techarsenal.camera_missing": "The linked camera no longer exists.",
   "message.techarsenal.camera_out_of_range": "Camera is out of range (max 64 blocks).",
   "message.techarsenal.camera_exit_hint_labeled": "%s — Press Sneak to exit camera view",

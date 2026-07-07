@@ -14,7 +14,7 @@
   "entity.techarsenal.drone_bolt": "ドローン弾",
   "message.techarsenal.camera_placed": "監視カメラ CAM-%s を設置しました",
   "message.techarsenal.camera_linked": "CAM-%s をリンクしました: %s, %s, %s",
-  "message.techarsenal.camera_not_linked": "カメラが未リンクです。先に監視カメラを右クリックしてください。",
+  "message.techarsenal.camera_not_linked": "カメラ未リンク: 監視カメラを右クリックでリンク(壁掛け画面には「モニター」ブロックを使用)",
   "message.techarsenal.camera_missing": "リンク先のカメラが存在しません。",
   "message.techarsenal.camera_out_of_range": "カメラが遠すぎます(最大64ブロック)。",
   "message.techarsenal.camera_exit_hint_labeled": "%s — スニークでカメラ視点を解除",

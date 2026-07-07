@@ -1,6 +1,7 @@
 package com.girigiri.techarsenal.block;
 
 import com.girigiri.techarsenal.blockentity.MonitorBlockEntity;
+import com.girigiri.techarsenal.registry.ModItems;
 import com.girigiri.techarsenal.util.MonitorScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -62,6 +63,11 @@ public class MonitorBlock extends BaseEntityBlock
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
                                  InteractionHand hand, BlockHitResult hit)
     {
+        // Holding more monitors means the player is extending the wall —
+        // let placement happen instead of cycling the feed
+        if (player.getItemInHand(hand).is(ModItems.MONITOR.get()))
+            return InteractionResult.PASS;
+
         if (!level.isClientSide && level instanceof ServerLevel serverLevel)
         {
             MonitorScreen.Screen screen = MonitorScreen.resolve(level, pos, state);
