@@ -67,6 +67,11 @@ public final class FeedManager
     private static long frameCounter;
     private static boolean capturing;
 
+    public static boolean isCapturing()
+    {
+        return capturing;
+    }
+
     private FeedManager()
     {
     }
