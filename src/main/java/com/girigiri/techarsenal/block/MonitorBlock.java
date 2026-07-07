@@ -1,7 +1,6 @@
 package com.girigiri.techarsenal.block;
 
 import com.girigiri.techarsenal.blockentity.MonitorBlockEntity;
-import com.girigiri.techarsenal.registry.ModItems;
 import com.girigiri.techarsenal.util.MonitorScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -10,6 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
@@ -63,9 +63,10 @@ public class MonitorBlock extends BaseEntityBlock
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
                                  InteractionHand hand, BlockHitResult hit)
     {
-        // Holding more monitors means the player is extending the wall —
-        // let placement happen instead of cycling the feed
-        if (player.getItemInHand(hand).is(ModItems.MONITOR.get()))
+        // Holding any block means the player is building (extending the wall,
+        // placing cameras next to it, ...) — let placement happen instead of
+        // cycling the feed. Cycling works with an empty hand or non-block items.
+        if (player.getItemInHand(hand).getItem() instanceof BlockItem)
             return InteractionResult.PASS;
 
         if (!level.isClientSide && level instanceof ServerLevel serverLevel)
