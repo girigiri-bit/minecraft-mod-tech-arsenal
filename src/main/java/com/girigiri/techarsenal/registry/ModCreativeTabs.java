@@ -24,7 +24,10 @@ public class ModCreativeTabs
                         output.accept(ModItems.SATELLITE_REMOTE.get());
                         output.accept(ModItems.MISSILE_LAUNCHER.get());
                         output.accept(ModItems.GUIDED_MISSILE.get());
+                        output.accept(ModItems.LASER_DESIGNATOR.get());
                         output.accept(ModItems.DRONE.get());
+                        output.accept(ModItems.DRONE_UPGRADE_DAMAGE.get());
+                        output.accept(ModItems.DRONE_UPGRADE_ARMOR.get());
                         output.accept(ModItems.RIFLE.get());
                         output.accept(ModItems.MACHINE_GUN.get());
                         output.accept(ModItems.GRENADE_LAUNCHER.get());
@@ -32,6 +35,9 @@ public class ModCreativeTabs
                         output.accept(ModItems.LASER_GUN.get());
                         output.accept(ModItems.BEAM_SABER.get());
                         output.accept(ModItems.FLAMETHROWER.get());
+                        output.accept(ModItems.BULLET.get());
+                        output.accept(ModItems.GRENADE.get());
+                        output.accept(ModItems.ROCKET.get());
                         output.accept(ModItems.LANDMINE.get());
                         output.accept(ModItems.DEFENSE_TURRET.get());
                         output.accept(ModItems.ATTACK_HELICOPTER.get());

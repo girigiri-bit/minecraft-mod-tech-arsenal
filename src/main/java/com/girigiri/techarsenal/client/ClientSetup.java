@@ -28,6 +28,10 @@ public final class ClientSetup
             "key.techarsenal.camera_view", KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, "key.categories.techarsenal");
 
+    public static final KeyMapping VEHICLE_FIRE_KEY = new KeyMapping(
+            "key.techarsenal.vehicle_fire", KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_R, "key.categories.techarsenal");
+
     private ClientSetup()
     {
     }
@@ -36,6 +40,7 @@ public final class ClientSetup
     public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event)
     {
         event.register(CAMERA_VIEW_KEY);
+        event.register(VEHICLE_FIRE_KEY);
     }
 
     @SubscribeEvent
@@ -51,6 +56,7 @@ public final class ClientSetup
         event.registerEntityRenderer(ModEntities.BULLET.get(), ThrownItemRenderer::new);
         event.registerEntityRenderer(ModEntities.GRENADE.get(), ThrownItemRenderer::new);
         event.registerEntityRenderer(ModEntities.ROCKET.get(), ThrownItemRenderer::new);
+        event.registerEntityRenderer(ModEntities.SHELL.get(), ThrownItemRenderer::new);
         event.registerEntityRenderer(ModEntities.TURRET.get(), VehicleRenderers.Turret::new);
         event.registerEntityRenderer(ModEntities.HELICOPTER.get(), VehicleRenderers.Helicopter::new);
         event.registerEntityRenderer(ModEntities.TANK.get(), VehicleRenderers.Tank::new);

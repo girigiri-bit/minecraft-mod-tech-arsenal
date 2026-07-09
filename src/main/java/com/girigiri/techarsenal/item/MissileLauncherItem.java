@@ -21,6 +21,7 @@ import java.util.List;
 public class MissileLauncherItem extends Item
 {
     private static final double TARGET_SEARCH_RANGE = 48.0D;
+    private static final double DESIGNATED_RANGE = 128.0D;
     private static final int COOLDOWN_TICKS = 30;
 
     public MissileLauncherItem(Properties properties)
@@ -45,7 +46,8 @@ public class MissileLauncherItem extends Item
             GuidedMissileEntity missile = new GuidedMissileEntity(ModEntities.GUIDED_MISSILE.get(), player, level);
             missile.setPos(player.getEyePosition().add(look.scale(1.0D)));
             missile.shoot(look.x, look.y, look.z, 1.5F, 0.0F);
-            missile.setHomingTarget(findTarget(level, player));
+            LivingEntity designated = findDesignatedTarget(level, player);
+            missile.setHomingTarget(designated != null ? designated : findTarget(level, player));
             level.addFreshEntity(missile);
 
             level.playSound(null, player.getX(), player.getY(), player.getZ(),
@@ -67,6 +69,25 @@ public class MissileLauncherItem extends Item
             }
         }
         return false;
+    }
+
+    // A laser-designated mark anywhere in the inventory takes priority — no line of sight needed
+    @javax.annotation.Nullable
+    private static LivingEntity findDesignatedTarget(Level level, Player player)
+    {
+        if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel))
+            return null;
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++)
+        {
+            ItemStack slot = player.getInventory().getItem(i);
+            if (slot.is(ModItems.LASER_DESIGNATOR.get()))
+            {
+                LivingEntity target = LaserDesignatorItem.getDesignatedTarget(serverLevel, slot);
+                if (target != null && target.distanceTo(player) <= DESIGNATED_RANGE)
+                    return target;
+            }
+        }
+        return null;
     }
 
     // Pick the monster closest to the player's crosshair direction within range

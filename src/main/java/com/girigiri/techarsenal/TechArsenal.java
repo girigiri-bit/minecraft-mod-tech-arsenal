@@ -4,6 +4,7 @@ import com.girigiri.techarsenal.registry.ModBlockEntities;
 import com.girigiri.techarsenal.registry.ModBlocks;
 import com.girigiri.techarsenal.registry.ModCreativeTabs;
 import com.girigiri.techarsenal.registry.ModEntities;
+import com.girigiri.techarsenal.network.ModNetwork;
 import com.girigiri.techarsenal.registry.ModItems;
 import com.mojang.logging.LogUtils;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -27,6 +28,8 @@ public class TechArsenal
         ModBlockEntities.BLOCK_ENTITY_TYPES.register(modEventBus);
         ModEntities.ENTITY_TYPES.register(modEventBus);
         ModCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
+
+        ModNetwork.register();
 
         LOGGER.info("Tech Arsenal loaded");
     }

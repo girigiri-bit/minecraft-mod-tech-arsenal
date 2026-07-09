@@ -1,6 +1,7 @@
 package com.girigiri.techarsenal.item;
 
 import com.girigiri.techarsenal.entity.BulletEntity;
+import com.girigiri.techarsenal.registry.ModItems;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -38,6 +39,12 @@ public class MachineGunItem extends Item
     {
         if (level.isClientSide || remainingUseDuration % FIRE_INTERVAL_TICKS != 0)
             return;
+
+        if (entity instanceof Player player && !AmmoHelper.tryConsume(player, ModItems.BULLET.get()))
+        {
+            player.stopUsingItem();
+            return;
+        }
 
         Vec3 look = entity.getLookAngle();
         BulletEntity bullet = new BulletEntity(level, entity, DAMAGE);

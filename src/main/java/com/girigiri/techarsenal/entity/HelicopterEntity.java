@@ -1,6 +1,8 @@
 package com.girigiri.techarsenal.entity;
 
 import com.girigiri.techarsenal.registry.ModItems;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.PathfinderMob;
@@ -13,12 +15,18 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Attack helicopter: W flies toward the rider's look direction (pitch controls
  * altitude), S flies backward. Hovers while ridden, descends gently when parked.
- * HP 60, top speed ~1.2 m/tick.
+ * HP 60, top speed ~1.2 m/tick. Fire key launches rockets from alternating
+ * side pods (CD 20t).
  */
-public class HelicopterEntity extends VehicleEntityBase
+public class HelicopterEntity extends VehicleEntityBase implements ArmedVehicle
 {
     private static final double ACCELERATION = 0.12D;
     private static final double DRAG = 0.90D;
+    private static final int ROCKET_COOLDOWN_TICKS = 20;
+    private static final double POD_OFFSET = 1.1D;
+
+    private long lastFireGameTime = -1_000_000L;
+    private boolean leftPod;
 
     public HelicopterEntity(EntityType<? extends HelicopterEntity> type, Level level)
     {
@@ -61,6 +69,29 @@ public class HelicopterEntity extends VehicleEntityBase
             return;
         }
         super.travel(input);
+    }
+
+    @Override
+    public void fireWeapon(ServerPlayer rider)
+    {
+        long now = this.level().getGameTime();
+        if (now - lastFireGameTime < ROCKET_COOLDOWN_TICKS)
+            return;
+        lastFireGameTime = now;
+
+        Vec3 look = rider.getLookAngle();
+        Vec3 right = look.cross(new Vec3(0.0D, 1.0D, 0.0D)).normalize();
+        leftPod = !leftPod;
+        Vec3 muzzle = this.position()
+                .add(0.0D, 0.9D, 0.0D)
+                .add(right.scale(leftPod ? -POD_OFFSET : POD_OFFSET))
+                .add(look.scale(1.5D));
+
+        RocketEntity rocket = new RocketEntity(this.level(), rider);
+        rocket.setPos(muzzle);
+        rocket.shoot(look.x, look.y, look.z, 2.5F, 0.0F);
+        this.level().addFreshEntity(rocket);
+        this.playSound(SoundEvents.FIREWORK_ROCKET_LAUNCH, 1.0F, 0.8F);
     }
 
     @Override

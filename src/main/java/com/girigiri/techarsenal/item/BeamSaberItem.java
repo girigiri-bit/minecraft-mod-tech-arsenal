@@ -1,12 +1,20 @@
 package com.girigiri.techarsenal.item;
 
+import com.girigiri.techarsenal.client.renderer.BeamSaberRenderer;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.SwordItem;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Tier;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 
-/** Energy melee blade: 12 total attack damage, 1.6 attacks/sec (DPS 19.2). */
+import java.util.function.Consumer;
+
+/**
+ * Energy melee blade: 12 total attack damage, 1.6 attacks/sec (DPS 19.2).
+ * Rendered as a glowing 3D beam (BeamSaberRenderer); while mid-swing it
+ * deflects incoming projectiles (see SaberDeflection).
+ */
 public class BeamSaberItem extends SwordItem
 {
     // 12 total = ENERGY bonus 8 + sword base 3 + player base 1
@@ -55,8 +63,15 @@ public class BeamSaberItem extends SwordItem
     }
 
     @Override
-    public boolean isFoil(ItemStack stack)
+    public void initializeClient(Consumer<IClientItemExtensions> consumer)
     {
-        return true;
+        consumer.accept(new IClientItemExtensions()
+        {
+            @Override
+            public BlockEntityWithoutLevelRenderer getCustomRenderer()
+            {
+                return BeamSaberRenderer.instance();
+            }
+        });
     }
 }

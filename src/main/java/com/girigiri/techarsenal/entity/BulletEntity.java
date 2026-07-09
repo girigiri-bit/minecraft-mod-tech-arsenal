@@ -68,6 +68,7 @@ public class BulletEntity extends ThrowableItemProjectile
     public void tick()
     {
         super.tick();
+        com.girigiri.techarsenal.event.SaberDeflection.tickDeflectTrail(this);
         if (this.tickCount > MAX_LIFETIME_TICKS)
             this.discard();
     }

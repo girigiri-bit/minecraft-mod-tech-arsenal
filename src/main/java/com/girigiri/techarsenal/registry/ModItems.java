@@ -7,6 +7,7 @@ import com.girigiri.techarsenal.item.DeployableItem;
 import com.girigiri.techarsenal.item.DroneItem;
 import com.girigiri.techarsenal.item.FlamethrowerItem;
 import com.girigiri.techarsenal.item.GrenadeLauncherItem;
+import com.girigiri.techarsenal.item.LaserDesignatorItem;
 import com.girigiri.techarsenal.item.LaserGunItem;
 import com.girigiri.techarsenal.item.MachineGunItem;
 import com.girigiri.techarsenal.item.MissileLauncherItem;
@@ -73,7 +74,7 @@ public class ModItems
     public static final RegistryObject<Item> LANDMINE = ITEMS.register("landmine",
             () -> new BlockItem(ModBlocks.LANDMINE.get(), new Item.Properties().stacksTo(16)));
 
-    // Projectile display items (used by renderers)
+    // Ammo (also used by the projectile renderers)
     public static final RegistryObject<Item> BULLET = ITEMS.register("bullet",
             () -> new Item(new Item.Properties()));
 
@@ -82,6 +83,21 @@ public class ModItems
 
     public static final RegistryObject<Item> ROCKET = ITEMS.register("rocket",
             () -> new Item(new Item.Properties()));
+
+    // Tank cannon shell (renderer display only; the cannon needs no ammo)
+    public static final RegistryObject<Item> SHELL = ITEMS.register("shell",
+            () -> new Item(new Item.Properties()));
+
+    // --- v0.4: support gear ---
+
+    public static final RegistryObject<Item> LASER_DESIGNATOR = ITEMS.register("laser_designator",
+            () -> new LaserDesignatorItem(new Item.Properties().stacksTo(1)));
+
+    public static final RegistryObject<Item> DRONE_UPGRADE_DAMAGE = ITEMS.register("drone_upgrade_damage",
+            () -> new Item(new Item.Properties().stacksTo(16)));
+
+    public static final RegistryObject<Item> DRONE_UPGRADE_ARMOR = ITEMS.register("drone_upgrade_armor",
+            () -> new Item(new Item.Properties().stacksTo(16)));
 
     // --- v0.3: machines & vehicles ---
 

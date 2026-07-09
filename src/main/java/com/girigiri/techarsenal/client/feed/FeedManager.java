@@ -40,7 +40,7 @@ public final class FeedManager
     private static final long EVICT_AFTER_FRAMES = 600;
     private static final double MAX_CAMERA_DISTANCE = 64.0D;
 
-    public record FeedView(@Nullable ResourceLocation texture, String label)
+    public record FeedView(@Nullable ResourceLocation texture, String label, float aspect)
     {
         public boolean hasSignal()
         {
@@ -52,6 +52,7 @@ public final class FeedManager
     {
         TextureTarget target;
         ResourceLocation textureLocation;
+        float aspect = 16.0F / 9.0F;
         CameraEntity camera;
         Vec3 capturePos = Vec3.ZERO;
         float captureYaw;
@@ -84,11 +85,11 @@ public final class FeedManager
     {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null)
-            return new FeedView(null, "NO SIGNAL");
+            return new FeedView(null, "NO SIGNAL", 1.0F);
 
         int type = be.getFeedType();
         if (type == MonitorBlockEntity.FEED_OFF)
-            return new FeedView(null, "OFF");
+            return new FeedView(null, "OFF", 1.0F);
 
         String label;
         Vec3 pos;
@@ -113,7 +114,7 @@ public final class FeedManager
                     || !(mc.level.getBlockState(camPos).getBlock() instanceof SecurityCameraBlock)
                     || !camPos.closerThan(be.getBlockPos(), MAX_CAMERA_DISTANCE))
             {
-                return new FeedView(null, label);
+                return new FeedView(null, label, 1.0F);
             }
             yaw = be.getCamYaw();
             pitch = 15.0F;
@@ -125,7 +126,7 @@ public final class FeedManager
         feed.captureYaw = yaw;
         feed.capturePitch = pitch;
         feed.lastRequestFrame = frameCounter;
-        return new FeedView(feed.everCaptured ? feed.textureLocation : null, label);
+        return new FeedView(feed.everCaptured ? feed.textureLocation : null, label, feed.aspect);
     }
 
     private static Feed createFeed(BlockPos controllerPos)
@@ -135,6 +136,7 @@ public final class FeedManager
         int width = Math.max(mc.getWindow().getWidth() / 2, 320);
         int height = Math.max(mc.getWindow().getHeight() / 2, 180);
         feed.target = new TextureTarget(width, height, true, Minecraft.ON_OSX);
+        feed.aspect = (float) width / (float) height;
         feed.textureLocation = new ResourceLocation(TechArsenal.MODID,
                 "feeds/" + controllerPos.getX() + "_" + controllerPos.getY() + "_" + controllerPos.getZ());
         mc.getTextureManager().register(feed.textureLocation, new RenderTargetTexture(feed.target));

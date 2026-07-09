@@ -1,5 +1,6 @@
 package com.girigiri.techarsenal.entity;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -58,7 +59,15 @@ public abstract class VehicleEntityBase extends PathfinderMob
         if (!this.isVehicle())
         {
             if (!this.level().isClientSide)
+            {
                 player.startRiding(this);
+                // Chat, not action bar: vanilla's "Press Shift to Dismount"
+                // overlay owns the action-bar slot while mounted
+                if (this instanceof ArmedVehicle)
+                    player.displayClientMessage(Component.translatable(
+                            "message.techarsenal.vehicle_fire_hint",
+                            Component.keybind("key.techarsenal.vehicle_fire")), false);
+            }
             return InteractionResult.sidedSuccess(this.level().isClientSide);
         }
         return super.mobInteract(player, hand);

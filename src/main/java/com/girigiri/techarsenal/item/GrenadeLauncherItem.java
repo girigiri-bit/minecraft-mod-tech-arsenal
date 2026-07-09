@@ -1,6 +1,7 @@
 package com.girigiri.techarsenal.item;
 
 import com.girigiri.techarsenal.entity.GrenadeEntity;
+import com.girigiri.techarsenal.registry.ModItems;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -27,6 +28,9 @@ public class GrenadeLauncherItem extends Item
     {
         if (!level.isClientSide)
         {
+            if (!AmmoHelper.tryConsume(player, ModItems.GRENADE.get()))
+                return InteractionResultHolder.fail(player.getItemInHand(hand));
+
             Vec3 look = player.getLookAngle();
             GrenadeEntity grenade = new GrenadeEntity(level, player);
             grenade.setPos(player.getEyePosition().add(look.scale(0.7D)));

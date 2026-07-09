@@ -9,6 +9,7 @@ import com.girigiri.techarsenal.entity.GrenadeEntity;
 import com.girigiri.techarsenal.entity.GuidedMissileEntity;
 import com.girigiri.techarsenal.entity.HelicopterEntity;
 import com.girigiri.techarsenal.entity.RocketEntity;
+import com.girigiri.techarsenal.entity.ShellEntity;
 import com.girigiri.techarsenal.entity.TankEntity;
 import com.girigiri.techarsenal.entity.TurretEntity;
 import net.minecraft.world.entity.EntityType;
@@ -74,6 +75,13 @@ public class ModEntities
                     .clientTrackingRange(8)
                     .updateInterval(2)
                     .build("rocket"));
+
+    public static final RegistryObject<EntityType<ShellEntity>> SHELL = ENTITY_TYPES.register("shell",
+            () -> EntityType.Builder.<ShellEntity>of(ShellEntity::new, MobCategory.MISC)
+                    .sized(0.35F, 0.35F)
+                    .clientTrackingRange(8)
+                    .updateInterval(2)
+                    .build("shell"));
 
     public static final RegistryObject<EntityType<TurretEntity>> TURRET = ENTITY_TYPES.register("defense_turret",
             () -> EntityType.Builder.of(TurretEntity::new, MobCategory.MISC)

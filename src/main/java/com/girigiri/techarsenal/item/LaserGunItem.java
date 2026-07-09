@@ -1,6 +1,8 @@
 package com.girigiri.techarsenal.item;
 
+import com.girigiri.techarsenal.event.SaberDeflection;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -48,7 +50,17 @@ public class LaserGunItem extends Item
             if (entityHit != null)
             {
                 beamEnd = entityHit.getLocation();
-                entityHit.getEntity().hurt(player.damageSources().playerAttack(player), DAMAGE);
+                Entity target = entityHit.getEntity();
+                if (target instanceof Player targetPlayer
+                        && SaberDeflection.tryDeflectHitscan(targetPlayer, player))
+                {
+                    // Parried: the beam comes back and burns the shooter
+                    player.hurt(player.damageSources().playerAttack(targetPlayer), DAMAGE);
+                }
+                else
+                {
+                    target.hurt(player.damageSources().playerAttack(player), DAMAGE);
+                }
             }
 
             // Beam particle trail

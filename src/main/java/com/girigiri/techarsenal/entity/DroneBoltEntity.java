@@ -80,6 +80,7 @@ public class DroneBoltEntity extends ThrowableItemProjectile
     public void tick()
     {
         super.tick();
+        com.girigiri.techarsenal.event.SaberDeflection.tickDeflectTrail(this);
         if (this.tickCount > 60)
             this.discard();
     }

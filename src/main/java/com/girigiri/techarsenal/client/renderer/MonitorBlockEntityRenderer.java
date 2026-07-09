@@ -90,14 +90,37 @@ public class MonitorBlockEntityRenderer implements BlockEntityRenderer<MonitorBl
             }
         }
 
+        // Center-crop the feed so the screen shows the correct aspect ratio
+        float u0 = 0.0F;
+        float u1 = 1.0F;
+        float v0 = 0.0F;
+        float v1 = 1.0F;
+        if (view.hasSignal())
+        {
+            float texAspect = view.aspect();
+            float screenAspect = (float) w / (float) h;
+            if (texAspect > screenAspect)
+            {
+                float span = screenAspect / texAspect;
+                u0 = (1.0F - span) / 2.0F;
+                u1 = 1.0F - u0;
+            }
+            else if (texAspect < screenAspect)
+            {
+                float span = texAspect / screenAspect;
+                v0 = (1.0F - span) / 2.0F;
+                v1 = 1.0F - v0;
+            }
+        }
+
         Matrix4f mat = poseStack.last().pose();
         VertexConsumer buffer = buffers.getBuffer(RenderType.text(texture));
         int light = LightTexture.FULL_BRIGHT;
-        // FBO textures have row 0 at the image bottom, so v=0 goes on the bottom edge
-        vertex(buffer, mat, bl, 0.0F, 0.0F, light);
-        vertex(buffer, mat, br, 1.0F, 0.0F, light);
-        vertex(buffer, mat, tr, 1.0F, 1.0F, light);
-        vertex(buffer, mat, tl, 0.0F, 1.0F, light);
+        // FBO textures have row 0 at the image bottom, so v0 goes on the bottom edge
+        vertex(buffer, mat, bl, u0, v0, light);
+        vertex(buffer, mat, br, u1, v0, light);
+        vertex(buffer, mat, tr, u1, v1, light);
+        vertex(buffer, mat, tl, u0, v1, light);
 
         renderLabel(poseStack, buffers, facing, w, h, view);
     }
