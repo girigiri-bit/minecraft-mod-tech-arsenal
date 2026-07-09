@@ -78,18 +78,21 @@ public class ModEntities
     public static final RegistryObject<EntityType<TurretEntity>> TURRET = ENTITY_TYPES.register("defense_turret",
             () -> EntityType.Builder.of(TurretEntity::new, MobCategory.MISC)
                     .sized(0.9F, 1.4F)
+                    .fireImmune()
                     .clientTrackingRange(10)
                     .build("defense_turret"));
 
     public static final RegistryObject<EntityType<HelicopterEntity>> HELICOPTER = ENTITY_TYPES.register("attack_helicopter",
             () -> EntityType.Builder.of(HelicopterEntity::new, MobCategory.MISC)
                     .sized(2.4F, 1.3F)
+                    .fireImmune()
                     .clientTrackingRange(10)
                     .build("attack_helicopter"));
 
     public static final RegistryObject<EntityType<TankEntity>> TANK = ENTITY_TYPES.register("tank",
             () -> EntityType.Builder.of(TankEntity::new, MobCategory.MISC)
                     .sized(2.2F, 1.3F)
+                    .fireImmune()
                     .clientTrackingRange(10)
                     .build("tank"));
 

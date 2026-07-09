@@ -1,13 +1,15 @@
 package com.girigiri.techarsenal.client;
 
 import com.girigiri.techarsenal.TechArsenal;
+import com.girigiri.techarsenal.client.model.HelicopterModel;
+import com.girigiri.techarsenal.client.model.TankModel;
+import com.girigiri.techarsenal.client.model.TurretModel;
 import com.girigiri.techarsenal.client.renderer.DroneRenderer;
 import com.girigiri.techarsenal.client.renderer.MonitorBlockEntityRenderer;
 import com.girigiri.techarsenal.client.renderer.NoopRenderer;
-import com.girigiri.techarsenal.client.renderer.SpriteEntityRenderer;
+import com.girigiri.techarsenal.client.renderer.VehicleRenderers;
 import com.girigiri.techarsenal.registry.ModBlockEntities;
 import com.girigiri.techarsenal.registry.ModEntities;
-import com.girigiri.techarsenal.registry.ModItems;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.renderer.entity.ThrownItemRenderer;
@@ -49,11 +51,16 @@ public final class ClientSetup
         event.registerEntityRenderer(ModEntities.BULLET.get(), ThrownItemRenderer::new);
         event.registerEntityRenderer(ModEntities.GRENADE.get(), ThrownItemRenderer::new);
         event.registerEntityRenderer(ModEntities.ROCKET.get(), ThrownItemRenderer::new);
-        event.registerEntityRenderer(ModEntities.TURRET.get(),
-                ctx -> new SpriteEntityRenderer<>(ctx, ModItems.DEFENSE_TURRET, 1.8F, false, 0.7F));
-        event.registerEntityRenderer(ModEntities.HELICOPTER.get(),
-                ctx -> new SpriteEntityRenderer<>(ctx, ModItems.ATTACK_HELICOPTER, 3.2F, true, 0.8F));
-        event.registerEntityRenderer(ModEntities.TANK.get(),
-                ctx -> new SpriteEntityRenderer<>(ctx, ModItems.TANK, 3.0F, true, 0.7F));
+        event.registerEntityRenderer(ModEntities.TURRET.get(), VehicleRenderers.Turret::new);
+        event.registerEntityRenderer(ModEntities.HELICOPTER.get(), VehicleRenderers.Helicopter::new);
+        event.registerEntityRenderer(ModEntities.TANK.get(), VehicleRenderers.Tank::new);
+    }
+
+    @SubscribeEvent
+    public static void onRegisterLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event)
+    {
+        event.registerLayerDefinition(VehicleRenderers.TANK_LAYER, TankModel::createBodyLayer);
+        event.registerLayerDefinition(VehicleRenderers.HELICOPTER_LAYER, HelicopterModel::createBodyLayer);
+        event.registerLayerDefinition(VehicleRenderers.TURRET_LAYER, TurretModel::createBodyLayer);
     }
 }

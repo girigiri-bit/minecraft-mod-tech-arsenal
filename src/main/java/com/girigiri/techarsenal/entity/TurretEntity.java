@@ -97,6 +97,12 @@ public class TurretEntity extends PathfinderMob implements RangedAttackMob
     }
 
     @Override
+    public boolean canBreatheUnderwater()
+    {
+        return true;
+    }
+
+    @Override
     protected void dropCustomDeathLoot(DamageSource source, int looting, boolean recentlyHit)
     {
         super.dropCustomDeathLoot(source, looting, recentlyHit);

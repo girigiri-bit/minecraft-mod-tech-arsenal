@@ -82,6 +82,13 @@ public abstract class VehicleEntityBase extends PathfinderMob
     }
 
     @Override
+    public boolean canBreatheUnderwater()
+    {
+        // Machines don't drown
+        return true;
+    }
+
+    @Override
     protected void dropCustomDeathLoot(DamageSource source, int looting, boolean recentlyHit)
     {
         super.dropCustomDeathLoot(source, looting, recentlyHit);

@@ -490,4 +490,29 @@ Write-Texture (Join-Path $blockDir "landmine.png") @(
     "dddddddddddddddd"
 ) @{ d = @(45,48,42); k = @(60,64,56); g = @(78,84,72); r = @(220,50,45); h = @(100,108,92) }
 
+# ============ entity textures (banded camo fills for voxel models) ============
+$entityDir = Join-Path $root "src\main\resources\assets\techarsenal\textures\entity"
+New-Item -ItemType Directory -Force $entityDir | Out-Null
+
+function Write-BandedTexture {
+    param([string]$Path, [int]$Size, [object[]]$Colors)
+    $bmp = New-Object System.Drawing.Bitmap($Size, $Size)
+    $rand = New-Object System.Random(42)
+    for ($y = 0; $y -lt $Size; $y++) {
+        for ($x = 0; $x -lt $Size; $x++) {
+            # 4x4 pixel patches picked pseudo-randomly from the palette for a camo feel
+            $seed = ([int]($x / 4) * 31 + [int]($y / 4) * 17) % $Colors.Count
+            $rgb = $Colors[[Math]::Abs($seed)]
+            $bmp.SetPixel($x, $y, [System.Drawing.Color]::FromArgb(255, $rgb[0], $rgb[1], $rgb[2]))
+        }
+    }
+    $bmp.Save($Path, [System.Drawing.Imaging.ImageFormat]::Png)
+    $bmp.Dispose()
+    Write-Host "wrote $Path"
+}
+
+Write-BandedTexture (Join-Path $entityDir "tank.png") 128 @(@(90,100,70), @(78,88,60), @(70,78,54), @(96,106,76))
+Write-BandedTexture (Join-Path $entityDir "attack_helicopter.png") 128 @(@(70,76,68), @(60,66,58), @(54,58,52), @(78,84,74))
+Write-BandedTexture (Join-Path $entityDir "defense_turret.png") 64 @(@(95,100,110), @(80,85,95), @(70,75,85), @(105,110,120))
+
 Write-Host "All textures generated."
