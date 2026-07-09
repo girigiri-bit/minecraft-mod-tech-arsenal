@@ -2,6 +2,7 @@
   "replace": false,
   "values": [
     "techarsenal:security_camera",
-    "techarsenal:monitor"
+    "techarsenal:monitor",
+    "techarsenal:landmine"
   ]
 }

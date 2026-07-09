@@ -1,0 +1,22 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "0": "techarsenal:block/landmine",
+    "particle": "techarsenal:block/landmine"
+  },
+  "elements": [
+    {
+      "name": "plate",
+      "from": [2, 0, 2],
+      "to": [14, 2, 14],
+      "faces": {
+        "north": { "uv": [2, 14, 14, 16], "texture": "#0" },
+        "east": { "uv": [2, 14, 14, 16], "texture": "#0" },
+        "south": { "uv": [2, 14, 14, 16], "texture": "#0" },
+        "west": { "uv": [2, 14, 14, 16], "texture": "#0" },
+        "up": { "uv": [2, 2, 14, 14], "texture": "#0" },
+        "down": { "uv": [2, 2, 14, 14], "texture": "#0" }
+      }
+    }
+  ]
+}

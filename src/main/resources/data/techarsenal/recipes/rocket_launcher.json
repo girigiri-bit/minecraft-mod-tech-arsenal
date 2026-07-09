@@ -1,0 +1,1 @@
+{"type":"minecraft:crafting_shaped","pattern":["III","GGR","III"],"key":{"I":{"item":"minecraft:iron_ingot"},"G":{"item":"minecraft:gunpowder"},"R":{"item":"minecraft:redstone"}},"result":{"item":"techarsenal:rocket_launcher"}}

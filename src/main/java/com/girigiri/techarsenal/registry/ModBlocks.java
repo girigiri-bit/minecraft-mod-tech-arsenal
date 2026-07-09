@@ -1,6 +1,7 @@
 package com.girigiri.techarsenal.registry;
 
 import com.girigiri.techarsenal.TechArsenal;
+import com.girigiri.techarsenal.block.LandmineBlock;
 import com.girigiri.techarsenal.block.MonitorBlock;
 import com.girigiri.techarsenal.block.SecurityCameraBlock;
 import net.minecraft.world.level.block.Block;
@@ -27,4 +28,11 @@ public class ModBlocks
                     .mapColor(MapColor.METAL)
                     .strength(1.5F)
                     .sound(SoundType.METAL)));
+
+    public static final RegistryObject<Block> LANDMINE = BLOCKS.register("landmine",
+            () -> new LandmineBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(0.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()));
 }

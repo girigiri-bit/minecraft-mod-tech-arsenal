@@ -1,9 +1,17 @@
 package com.girigiri.techarsenal.registry;
 
 import com.girigiri.techarsenal.TechArsenal;
+import com.girigiri.techarsenal.item.BeamSaberItem;
 import com.girigiri.techarsenal.item.CameraMonitorItem;
+import com.girigiri.techarsenal.item.DeployableItem;
 import com.girigiri.techarsenal.item.DroneItem;
+import com.girigiri.techarsenal.item.FlamethrowerItem;
+import com.girigiri.techarsenal.item.GrenadeLauncherItem;
+import com.girigiri.techarsenal.item.LaserGunItem;
+import com.girigiri.techarsenal.item.MachineGunItem;
 import com.girigiri.techarsenal.item.MissileLauncherItem;
+import com.girigiri.techarsenal.item.RifleItem;
+import com.girigiri.techarsenal.item.RocketLauncherItem;
 import com.girigiri.techarsenal.item.SatelliteRemoteItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -38,4 +46,51 @@ public class ModItems
 
     public static final RegistryObject<Item> DRONE_BOLT = ITEMS.register("drone_bolt",
             () -> new Item(new Item.Properties()));
+
+    // --- v0.3: weapons ---
+
+    public static final RegistryObject<Item> RIFLE = ITEMS.register("rifle",
+            () -> new RifleItem(new Item.Properties().stacksTo(1)));
+
+    public static final RegistryObject<Item> MACHINE_GUN = ITEMS.register("machine_gun",
+            () -> new MachineGunItem(new Item.Properties().stacksTo(1)));
+
+    public static final RegistryObject<Item> GRENADE_LAUNCHER = ITEMS.register("grenade_launcher",
+            () -> new GrenadeLauncherItem(new Item.Properties().stacksTo(1)));
+
+    public static final RegistryObject<Item> ROCKET_LAUNCHER = ITEMS.register("rocket_launcher",
+            () -> new RocketLauncherItem(new Item.Properties().stacksTo(1)));
+
+    public static final RegistryObject<Item> LASER_GUN = ITEMS.register("laser_gun",
+            () -> new LaserGunItem(new Item.Properties().stacksTo(1)));
+
+    public static final RegistryObject<Item> BEAM_SABER = ITEMS.register("beam_saber",
+            () -> new BeamSaberItem(new Item.Properties()));
+
+    public static final RegistryObject<Item> FLAMETHROWER = ITEMS.register("flamethrower",
+            () -> new FlamethrowerItem(new Item.Properties().stacksTo(1)));
+
+    public static final RegistryObject<Item> LANDMINE = ITEMS.register("landmine",
+            () -> new BlockItem(ModBlocks.LANDMINE.get(), new Item.Properties().stacksTo(16)));
+
+    // Projectile display items (used by renderers)
+    public static final RegistryObject<Item> BULLET = ITEMS.register("bullet",
+            () -> new Item(new Item.Properties()));
+
+    public static final RegistryObject<Item> GRENADE = ITEMS.register("grenade",
+            () -> new Item(new Item.Properties()));
+
+    public static final RegistryObject<Item> ROCKET = ITEMS.register("rocket",
+            () -> new Item(new Item.Properties()));
+
+    // --- v0.3: machines & vehicles ---
+
+    public static final RegistryObject<Item> DEFENSE_TURRET = ITEMS.register("defense_turret",
+            () -> new DeployableItem(ModEntities.TURRET, new Item.Properties().stacksTo(16)));
+
+    public static final RegistryObject<Item> ATTACK_HELICOPTER = ITEMS.register("attack_helicopter",
+            () -> new DeployableItem(ModEntities.HELICOPTER, new Item.Properties().stacksTo(1)));
+
+    public static final RegistryObject<Item> TANK = ITEMS.register("tank",
+            () -> new DeployableItem(ModEntities.TANK, new Item.Properties().stacksTo(1)));
 }

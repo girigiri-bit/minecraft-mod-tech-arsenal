@@ -25,5 +25,16 @@ public class ModCreativeTabs
                         output.accept(ModItems.MISSILE_LAUNCHER.get());
                         output.accept(ModItems.GUIDED_MISSILE.get());
                         output.accept(ModItems.DRONE.get());
+                        output.accept(ModItems.RIFLE.get());
+                        output.accept(ModItems.MACHINE_GUN.get());
+                        output.accept(ModItems.GRENADE_LAUNCHER.get());
+                        output.accept(ModItems.ROCKET_LAUNCHER.get());
+                        output.accept(ModItems.LASER_GUN.get());
+                        output.accept(ModItems.BEAM_SABER.get());
+                        output.accept(ModItems.FLAMETHROWER.get());
+                        output.accept(ModItems.LANDMINE.get());
+                        output.accept(ModItems.DEFENSE_TURRET.get());
+                        output.accept(ModItems.ATTACK_HELICOPTER.get());
+                        output.accept(ModItems.TANK.get());
                     }).build());
 }
