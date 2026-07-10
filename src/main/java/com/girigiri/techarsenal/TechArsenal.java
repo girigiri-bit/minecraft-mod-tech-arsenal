@@ -6,6 +6,7 @@ import com.girigiri.techarsenal.registry.ModCreativeTabs;
 import com.girigiri.techarsenal.registry.ModEntities;
 import com.girigiri.techarsenal.network.ModNetwork;
 import com.girigiri.techarsenal.registry.ModItems;
+import com.girigiri.techarsenal.registry.ModSounds;
 import com.mojang.logging.LogUtils;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
@@ -28,6 +29,7 @@ public class TechArsenal
         ModBlockEntities.BLOCK_ENTITY_TYPES.register(modEventBus);
         ModEntities.ENTITY_TYPES.register(modEventBus);
         ModCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
+        ModSounds.SOUND_EVENTS.register(modEventBus);
 
         ModNetwork.register();
 

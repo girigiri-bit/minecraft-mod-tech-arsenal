@@ -52,7 +52,9 @@ public class TankEntity extends VehicleEntityBase implements ArmedVehicle
 
         ((ServerLevel) this.level()).sendParticles(ParticleTypes.LARGE_SMOKE,
                 muzzle.x, muzzle.y, muzzle.z, 8, 0.15D, 0.15D, 0.15D, 0.02D);
-        this.playSound(SoundEvents.GENERIC_EXPLODE, 0.6F, 1.6F);
+        ((ServerLevel) this.level()).sendParticles(ParticleTypes.FLAME,
+                muzzle.x, muzzle.y, muzzle.z, 6, 0.1D, 0.1D, 0.1D, 0.04D);
+        this.playSound(com.girigiri.techarsenal.registry.ModSounds.TANK_CANNON.get(), 1.2F, 1.0F);
     }
 
     public static AttributeSupplier.Builder createAttributes()

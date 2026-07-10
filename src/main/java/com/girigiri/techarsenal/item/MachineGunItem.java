@@ -2,7 +2,8 @@ package com.girigiri.techarsenal.item;
 
 import com.girigiri.techarsenal.entity.BulletEntity;
 import com.girigiri.techarsenal.registry.ModItems;
-import net.minecraft.sounds.SoundEvents;
+import com.girigiri.techarsenal.registry.ModSounds;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -51,8 +52,10 @@ public class MachineGunItem extends Item
         bullet.setPos(entity.getEyePosition().add(look.scale(0.5D)));
         bullet.shoot(look.x, look.y, look.z, BULLET_SPEED, INACCURACY);
         level.addFreshEntity(bullet);
+        GunEffects.muzzleFlashAndCasing((ServerLevel) level, entity);
         level.playSound(null, entity.getX(), entity.getY(), entity.getZ(),
-                SoundEvents.CROSSBOW_SHOOT, SoundSource.PLAYERS, 0.5F, 1.8F);
+                ModSounds.MACHINE_GUN_FIRE.get(), SoundSource.PLAYERS, 0.9F,
+                0.95F + level.random.nextFloat() * 0.1F);
     }
 
     @Override

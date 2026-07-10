@@ -2,7 +2,8 @@ package com.girigiri.techarsenal.item;
 
 import com.girigiri.techarsenal.entity.BulletEntity;
 import com.girigiri.techarsenal.registry.ModItems;
-import net.minecraft.sounds.SoundEvents;
+import com.girigiri.techarsenal.registry.ModSounds;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -38,8 +39,10 @@ public class RifleItem extends Item
             bullet.setPos(player.getEyePosition().add(look.scale(0.5D)));
             bullet.shoot(look.x, look.y, look.z, BULLET_SPEED, INACCURACY);
             level.addFreshEntity(bullet);
+            GunEffects.muzzleFlashAndCasing((ServerLevel) level, player);
             level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.CROSSBOW_SHOOT, SoundSource.PLAYERS, 0.8F, 1.4F);
+                    ModSounds.RIFLE_FIRE.get(), SoundSource.PLAYERS, 1.0F,
+                    0.95F + level.random.nextFloat() * 0.1F);
             player.getCooldowns().addCooldown(this, COOLDOWN_TICKS);
         }
         return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide);

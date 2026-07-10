@@ -1,6 +1,48 @@
 {
-  "parent": "minecraft:item/handheld",
+  "credit": "Tech Arsenal generated gun model",
   "textures": {
-    "layer0": "techarsenal:item/flamethrower"
+    "0": "techarsenal:item/gun_palette",
+    "particle": "techarsenal:item/gun_palette"
+  },
+  "elements": [
+    {
+      "from": [6.75, 7.5, 0],
+      "to": [9.25, 10.5, 8],
+      "faces": { "north": { "uv": [4, 0, 8, 4], "texture": "#0" }, "south": { "uv": [4, 0, 8, 4], "texture": "#0" }, "east": { "uv": [4, 0, 8, 4], "texture": "#0" }, "west": { "uv": [4, 0, 8, 4], "texture": "#0" }, "up": { "uv": [4, 0, 8, 4], "texture": "#0" }, "down": { "uv": [4, 0, 8, 4], "texture": "#0" } }
+    },
+    {
+      "from": [6.9, 4.5, 2],
+      "to": [9.1, 7.5, 7],
+      "faces": { "north": { "uv": [0, 8, 4, 12], "texture": "#0" }, "south": { "uv": [0, 8, 4, 12], "texture": "#0" }, "east": { "uv": [0, 8, 4, 12], "texture": "#0" }, "west": { "uv": [0, 8, 4, 12], "texture": "#0" }, "up": { "uv": [0, 8, 4, 12], "texture": "#0" }, "down": { "uv": [0, 8, 4, 12], "texture": "#0" } }
+    },
+    {
+      "from": [7.3, 8.5, -7],
+      "to": [8.7, 9.75, 0],
+      "faces": { "north": { "uv": [0, 0, 4, 4], "texture": "#0" }, "south": { "uv": [0, 0, 4, 4], "texture": "#0" }, "east": { "uv": [0, 0, 4, 4], "texture": "#0" }, "west": { "uv": [0, 0, 4, 4], "texture": "#0" }, "up": { "uv": [0, 0, 4, 4], "texture": "#0" }, "down": { "uv": [0, 0, 4, 4], "texture": "#0" } }
+    },
+    {
+      "from": [7, 8.25, -8],
+      "to": [9, 10, -7],
+      "faces": { "north": { "uv": [4, 8, 8, 12], "texture": "#0" }, "south": { "uv": [4, 8, 8, 12], "texture": "#0" }, "east": { "uv": [4, 8, 8, 12], "texture": "#0" }, "west": { "uv": [4, 8, 8, 12], "texture": "#0" }, "up": { "uv": [4, 8, 8, 12], "texture": "#0" }, "down": { "uv": [4, 8, 8, 12], "texture": "#0" } }
+    },
+    {
+      "from": [7.4, 4.5, 8],
+      "to": [8.6, 7.5, 10],
+      "faces": { "north": { "uv": [8, 8, 12, 12], "texture": "#0" }, "south": { "uv": [8, 8, 12, 12], "texture": "#0" }, "east": { "uv": [8, 8, 12, 12], "texture": "#0" }, "west": { "uv": [8, 8, 12, 12], "texture": "#0" }, "up": { "uv": [8, 8, 12, 12], "texture": "#0" }, "down": { "uv": [8, 8, 12, 12], "texture": "#0" } }
+    },
+    {
+      "from": [7, 10.5, 3],
+      "to": [9, 11.3, 6],
+      "faces": { "north": { "uv": [0, 0, 4, 4], "texture": "#0" }, "south": { "uv": [0, 0, 4, 4], "texture": "#0" }, "east": { "uv": [0, 0, 4, 4], "texture": "#0" }, "west": { "uv": [0, 0, 4, 4], "texture": "#0" }, "up": { "uv": [0, 0, 4, 4], "texture": "#0" }, "down": { "uv": [0, 0, 4, 4], "texture": "#0" } }
+    }
+  ],
+  "display": {
+    "thirdperson_righthand": { "rotation": [65, 0, 0], "translation": [0, 2.5, 1], "scale": [0.55, 0.55, 0.55] },
+    "thirdperson_lefthand": { "rotation": [65, 0, 0], "translation": [0, 2.5, 1], "scale": [0.55, 0.55, 0.55] },
+    "firstperson_righthand": { "rotation": [0, 5, 0], "translation": [1.5, 1.0, 0], "scale": [0.6, 0.6, 0.6] },
+    "firstperson_lefthand": { "rotation": [0, -5, 0], "translation": [-1.5, 1.0, 0], "scale": [0.6, 0.6, 0.6] },
+    "gui": { "rotation": [25, -135, 0], "translation": [0, 0, 0], "scale": [0.6, 0.6, 0.6] },
+    "ground": { "rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.35, 0.35, 0.35] },
+    "fixed": { "rotation": [0, 90, 0], "translation": [0, 0, 0], "scale": [0.7, 0.7, 0.7] }
   }
 }

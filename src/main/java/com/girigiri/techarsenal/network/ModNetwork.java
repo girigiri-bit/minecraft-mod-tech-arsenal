@@ -22,5 +22,7 @@ public final class ModNetwork
         int id = 0;
         CHANNEL.registerMessage(id++, FireVehicleWeaponPacket.class,
                 FireVehicleWeaponPacket::encode, FireVehicleWeaponPacket::decode, FireVehicleWeaponPacket::handle);
+        CHANNEL.registerMessage(id++, SaberSpecialPacket.class,
+                SaberSpecialPacket::encode, SaberSpecialPacket::decode, SaberSpecialPacket::handle);
     }
 }

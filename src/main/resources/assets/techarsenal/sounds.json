@@ -1,0 +1,7 @@
+{
+  "machine_gun_fire": { "sounds": [{ "name": "techarsenal:machine_gun_fire" }] },
+  "rifle_fire": { "sounds": [{ "name": "techarsenal:rifle_fire" }] },
+  "tank_cannon": { "sounds": [{ "name": "techarsenal:tank_cannon" }] },
+  "saber_swing": { "sounds": [{ "name": "techarsenal:saber_swing" }] },
+  "saber_special": { "sounds": [{ "name": "techarsenal:saber_special" }] }
+}
