@@ -12,6 +12,19 @@ public final class AmmoHelper
     {
     }
 
+    /** Non-consuming check, e.g. to gate starting a hold-to-fire weapon. */
+    public static boolean has(Player player, Item ammo)
+    {
+        if (player.getAbilities().instabuild)
+            return true;
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++)
+            if (player.getInventory().getItem(i).is(ammo))
+                return true;
+        player.displayClientMessage(
+                Component.translatable("message.techarsenal.no_ammo_item", ammo.getDescription()), true);
+        return false;
+    }
+
     public static boolean tryConsume(Player player, Item ammo)
     {
         if (player.getAbilities().instabuild)

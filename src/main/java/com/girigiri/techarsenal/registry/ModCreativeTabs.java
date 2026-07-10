@@ -20,6 +20,10 @@ public class ModCreativeTabs
                     .displayItems((parameters, output) -> {
                         output.accept(ModItems.SECURITY_CAMERA.get());
                         output.accept(ModItems.MONITOR.get());
+                        output.accept(ModItems.FACE_SCANNER.get());
+                        output.accept(ModItems.AUTH_MONITOR.get());
+                        output.accept(ModItems.SECURITY_DOOR.get());
+                        output.accept(ModItems.DOOR_KEY.get());
                         output.accept(ModItems.CAMERA_MONITOR.get());
                         output.accept(ModItems.SATELLITE_REMOTE.get());
                         output.accept(ModItems.MISSILE_LAUNCHER.get());
@@ -38,6 +42,7 @@ public class ModCreativeTabs
                         output.accept(ModItems.BULLET.get());
                         output.accept(ModItems.GRENADE.get());
                         output.accept(ModItems.ROCKET.get());
+                        output.accept(ModItems.SHELL.get());
                         output.accept(ModItems.LANDMINE.get());
                         output.accept(ModItems.DEFENSE_TURRET.get());
                         output.accept(ModItems.ATTACK_HELICOPTER.get());

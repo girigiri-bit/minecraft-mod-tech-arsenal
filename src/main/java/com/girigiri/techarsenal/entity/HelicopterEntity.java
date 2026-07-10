@@ -77,6 +77,8 @@ public class HelicopterEntity extends VehicleEntityBase implements ArmedVehicle
         long now = this.level().getGameTime();
         if (now - lastFireGameTime < ROCKET_COOLDOWN_TICKS)
             return;
+        if (!com.girigiri.techarsenal.item.AmmoHelper.tryConsume(rider, ModItems.ROCKET.get()))
+            return;
         lastFireGameTime = now;
 
         Vec3 look = rider.getLookAngle();

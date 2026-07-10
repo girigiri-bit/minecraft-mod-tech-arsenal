@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "techarsenal:block/face_scanner" },
+    "facing=east": { "model": "techarsenal:block/face_scanner", "y": 90 },
+    "facing=south": { "model": "techarsenal:block/face_scanner", "y": 180 },
+    "facing=west": { "model": "techarsenal:block/face_scanner", "y": 270 }
+  }
+}

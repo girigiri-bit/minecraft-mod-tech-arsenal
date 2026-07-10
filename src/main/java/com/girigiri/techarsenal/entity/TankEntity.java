@@ -36,6 +36,8 @@ public class TankEntity extends VehicleEntityBase implements ArmedVehicle
         long now = this.level().getGameTime();
         if (now - lastFireGameTime < CANNON_COOLDOWN_TICKS)
             return;
+        if (!com.girigiri.techarsenal.item.AmmoHelper.tryConsume(rider, ModItems.SHELL.get()))
+            return;
         lastFireGameTime = now;
 
         Vec3 look = rider.getLookAngle();

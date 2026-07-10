@@ -3,6 +3,9 @@
   "values": [
     "techarsenal:security_camera",
     "techarsenal:monitor",
-    "techarsenal:landmine"
+    "techarsenal:landmine",
+    "techarsenal:face_scanner",
+    "techarsenal:auth_monitor",
+    "techarsenal:security_door"
   ]
 }

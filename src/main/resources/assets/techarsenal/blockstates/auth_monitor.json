@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "facing=north,status=idle": { "model": "techarsenal:block/auth_monitor_idle" },
+    "facing=east,status=idle": { "model": "techarsenal:block/auth_monitor_idle", "y": 90 },
+    "facing=south,status=idle": { "model": "techarsenal:block/auth_monitor_idle", "y": 180 },
+    "facing=west,status=idle": { "model": "techarsenal:block/auth_monitor_idle", "y": 270 },
+    "facing=north,status=granted": { "model": "techarsenal:block/auth_monitor_granted" },
+    "facing=east,status=granted": { "model": "techarsenal:block/auth_monitor_granted", "y": 90 },
+    "facing=south,status=granted": { "model": "techarsenal:block/auth_monitor_granted", "y": 180 },
+    "facing=west,status=granted": { "model": "techarsenal:block/auth_monitor_granted", "y": 270 },
+    "facing=north,status=denied": { "model": "techarsenal:block/auth_monitor_denied" },
+    "facing=east,status=denied": { "model": "techarsenal:block/auth_monitor_denied", "y": 90 },
+    "facing=south,status=denied": { "model": "techarsenal:block/auth_monitor_denied", "y": 180 },
+    "facing=west,status=denied": { "model": "techarsenal:block/auth_monitor_denied", "y": 270 }
+  }
+}

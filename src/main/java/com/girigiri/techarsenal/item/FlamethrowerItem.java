@@ -2,6 +2,7 @@ package com.girigiri.techarsenal.item;
 
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.Items;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -16,7 +17,10 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
-/** Hold-to-fire flame cone: 2 dmg / 5 ticks + 5s burn, range 8, ~30 degree cone. */
+/**
+ * Hold-to-fire flame cone: 2 dmg / 5 ticks + 5s burn, range 8, ~30 degree
+ * cone. Burns one blaze powder on ignition and one every 2 seconds.
+ */
 public class FlamethrowerItem extends Item
 {
     private static final float DAMAGE = 2.0F;
@@ -24,6 +28,7 @@ public class FlamethrowerItem extends Item
     private static final double RANGE = 8.0D;
     private static final double CONE_MIN_DOT = 0.86D; // ~30 degree cone
     private static final int BURN_SECONDS = 5;
+    private static final int FUEL_INTERVAL_TICKS = 40;
 
     public FlamethrowerItem(Properties properties)
     {
@@ -33,6 +38,8 @@ public class FlamethrowerItem extends Item
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand)
     {
+        if (!level.isClientSide && !AmmoHelper.tryConsume(player, Items.BLAZE_POWDER))
+            return InteractionResultHolder.fail(player.getItemInHand(hand));
         player.startUsingItem(hand);
         return InteractionResultHolder.consume(player.getItemInHand(hand));
     }
@@ -42,6 +49,15 @@ public class FlamethrowerItem extends Item
     {
         if (level.isClientSide)
             return;
+
+        // Fuel burn: one blaze powder every 2 seconds of sustained fire
+        if (remainingUseDuration % FUEL_INTERVAL_TICKS == 0
+                && entity instanceof Player player
+                && !AmmoHelper.tryConsume(player, Items.BLAZE_POWDER))
+        {
+            player.stopUsingItem();
+            return;
+        }
 
         ServerLevel serverLevel = (ServerLevel) level;
         Vec3 eye = entity.getEyePosition();

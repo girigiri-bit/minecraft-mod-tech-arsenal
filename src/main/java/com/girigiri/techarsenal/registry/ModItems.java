@@ -4,6 +4,7 @@ import com.girigiri.techarsenal.TechArsenal;
 import com.girigiri.techarsenal.item.BeamSaberItem;
 import com.girigiri.techarsenal.item.CameraMonitorItem;
 import com.girigiri.techarsenal.item.DeployableItem;
+import com.girigiri.techarsenal.item.DoorKeyItem;
 import com.girigiri.techarsenal.item.DroneItem;
 import com.girigiri.techarsenal.item.FlamethrowerItem;
 import com.girigiri.techarsenal.item.GrenadeLauncherItem;
@@ -15,6 +16,7 @@ import com.girigiri.techarsenal.item.RifleItem;
 import com.girigiri.techarsenal.item.RocketLauncherItem;
 import com.girigiri.techarsenal.item.SatelliteRemoteItem;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.DoubleHighBlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -87,6 +89,20 @@ public class ModItems
     // Tank cannon shell (renderer display only; the cannon needs no ammo)
     public static final RegistryObject<Item> SHELL = ITEMS.register("shell",
             () -> new Item(new Item.Properties()));
+
+    // --- v0.5: security ---
+
+    public static final RegistryObject<Item> FACE_SCANNER = ITEMS.register("face_scanner",
+            () -> new BlockItem(ModBlocks.FACE_SCANNER.get(), new Item.Properties()));
+
+    public static final RegistryObject<Item> AUTH_MONITOR = ITEMS.register("auth_monitor",
+            () -> new BlockItem(ModBlocks.AUTH_MONITOR.get(), new Item.Properties()));
+
+    public static final RegistryObject<Item> SECURITY_DOOR = ITEMS.register("security_door",
+            () -> new DoubleHighBlockItem(ModBlocks.SECURITY_DOOR.get(), new Item.Properties()));
+
+    public static final RegistryObject<Item> DOOR_KEY = ITEMS.register("door_key",
+            () -> new DoorKeyItem(new Item.Properties().stacksTo(1)));
 
     // --- v0.4: support gear ---
 

@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/orientable",
+  "textures": {
+    "front": "techarsenal:block/auth_monitor_granted",
+    "side": "techarsenal:block/monitor_side",
+    "top": "techarsenal:block/monitor_side"
+  }
+}
