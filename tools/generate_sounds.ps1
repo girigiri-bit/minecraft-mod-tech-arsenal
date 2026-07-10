@@ -33,18 +33,19 @@ $enc = @("-ar", "44100", "-ac", "1", "-c:a", "libvorbis", "-qscale:a", "4")
     -filter_complex "[0:a]lowpass=f=900,volume='exp(-7*t)':eval=frame[n];[n][1:a]amix=inputs=2:duration=longest,volume=2.6" `
     @enc (Join-Path $soundDir "tank_cannon.ogg")
 
-# Saber swing: "fwon" - falling chirp + swelling band-passed whoosh
+# Saber swing: "fwon" - instant-attack falling chirp + fast whoosh
+# (25ms attack so it lands exactly on the swing, no perceived delay)
 & $ff @common `
-    -f lavfi -i "aevalsrc='0.7*sin(2*PI*(300-320*t)*t)*exp(-6*t)':d=0.45" `
-    -f lavfi -i "anoisesrc=d=0.45:c=white:a=0.8" `
-    -filter_complex "[1:a]bandpass=f=650:w=500,volume='0.9*sin(PI*t/0.45)':eval=frame[w];[0:a][w]amix=inputs=2:duration=longest,volume=2.2" `
+    -f lavfi -i "aevalsrc='0.9*sin(2*PI*(340-450*t)*t)*exp(-9*t)':d=0.3" `
+    -f lavfi -i "anoisesrc=d=0.3:c=white:a=0.9" `
+    -filter_complex "[1:a]bandpass=f=700:w=500,volume='min(t/0.025\,1)*exp(-11*t)':eval=frame[w];[0:a][w]amix=inputs=2:duration=longest,volume=2.4" `
     @enc (Join-Path $soundDir "saber_swing.ogg")
 
-# Saber special: "vwoon" - vibrato hum that swells and dies
+# Saber special: "vwoon" - instant-attack vibrato hum that rings out
 & $ff @common `
-    -f lavfi -i "aevalsrc='(0.85*sin(2*PI*(115+55*sin(2*PI*1.6*t))*t)+0.35*sin(2*PI*(230+110*sin(2*PI*1.6*t))*t))*sin(PI*t/0.9)':d=0.9" `
-    -f lavfi -i "anoisesrc=d=0.9:c=white:a=0.5" `
-    -filter_complex "[1:a]bandpass=f=420:w=300,volume='0.6*sin(PI*t/0.9)':eval=frame[w];[0:a][w]amix=inputs=2:duration=longest,volume=2.3" `
+    -f lavfi -i "aevalsrc='(0.9*sin(2*PI*(115+55*sin(2*PI*1.8*t))*t)+0.35*sin(2*PI*(230+110*sin(2*PI*1.8*t))*t))*min(t/0.03\,1)*exp(-3.2*t)':d=0.7" `
+    -f lavfi -i "anoisesrc=d=0.7:c=white:a=0.5" `
+    -filter_complex "[1:a]bandpass=f=420:w=300,volume='min(t/0.03\,1)*exp(-5*t)*0.7':eval=frame[w];[0:a][w]amix=inputs=2:duration=longest,volume=2.4" `
     @enc (Join-Path $soundDir "saber_special.ogg")
 
 Get-ChildItem $soundDir -Name

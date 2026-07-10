@@ -40,6 +40,7 @@ public class GrenadeLauncherItem extends Item
                     SoundEvents.DISPENSER_LAUNCH, SoundSource.PLAYERS, 1.0F, 0.8F);
             player.getCooldowns().addCooldown(this, COOLDOWN_TICKS);
         }
-        return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide);
+        // consume (not sidedSuccess): no arm-swing animation, the gun stays steady
+        return InteractionResultHolder.consume(player.getItemInHand(hand));
     }
 }

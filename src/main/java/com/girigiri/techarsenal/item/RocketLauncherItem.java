@@ -40,6 +40,7 @@ public class RocketLauncherItem extends Item
                     SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.PLAYERS, 1.2F, 0.6F);
             player.getCooldowns().addCooldown(this, COOLDOWN_TICKS);
         }
-        return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide);
+        // consume (not sidedSuccess): no arm-swing animation, the gun stays steady
+        return InteractionResultHolder.consume(player.getItemInHand(hand));
     }
 }

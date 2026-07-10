@@ -45,6 +45,7 @@ public class RifleItem extends Item
                     0.95F + level.random.nextFloat() * 0.1F);
             player.getCooldowns().addCooldown(this, COOLDOWN_TICKS);
         }
-        return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide);
+        // consume (not sidedSuccess): no arm-swing animation, the gun stays steady
+        return InteractionResultHolder.consume(player.getItemInHand(hand));
     }
 }

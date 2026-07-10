@@ -12,10 +12,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 
-/** Tank cannon shell: 15 direct + r3.0 explosion, slight ballistic drop (no block damage). */
+/** Tank cannon shell: 30 direct + r3.0 explosion with small terrain damage. */
 public class ShellEntity extends ThrowableItemProjectile
 {
-    private static final float DIRECT_DAMAGE = 15.0F;
+    private static final float DIRECT_DAMAGE = 30.0F;
     private static final float EXPLOSION_RADIUS = 3.0F;
     private static final int MAX_LIFETIME_TICKS = 100;
 
@@ -75,8 +75,9 @@ public class ShellEntity extends ThrowableItemProjectile
 
     private void explode()
     {
+        // BLOCK interaction: real cannon fire leaves a small crater
         this.level().explode(this, this.getX(), this.getY(), this.getZ(),
-                EXPLOSION_RADIUS, Level.ExplosionInteraction.NONE);
+                EXPLOSION_RADIUS, Level.ExplosionInteraction.BLOCK);
         this.discard();
     }
 }

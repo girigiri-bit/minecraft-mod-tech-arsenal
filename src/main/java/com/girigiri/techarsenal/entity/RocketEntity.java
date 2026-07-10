@@ -12,12 +12,20 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 
-/** Straight-flying rocket with a large explosion (no block damage). */
+/**
+ * Straight-flying rocket. The handheld launcher fires the standard version
+ * (no block damage); helicopter pods fire the heavy version — double damage
+ * and a small terrain-breaking blast.
+ */
 public class RocketEntity extends ThrowableItemProjectile
 {
     private static final float DIRECT_DAMAGE = 12.0F;
     private static final float EXPLOSION_RADIUS = 3.5F;
+    private static final float HEAVY_DIRECT_DAMAGE = 24.0F;
+    private static final float HEAVY_EXPLOSION_RADIUS = 3.0F;
     private static final int MAX_LIFETIME_TICKS = 60;
+
+    private boolean heavy;
 
     public RocketEntity(EntityType<? extends RocketEntity> type, Level level)
     {
@@ -27,6 +35,12 @@ public class RocketEntity extends ThrowableItemProjectile
     public RocketEntity(Level level, LivingEntity shooter)
     {
         super(ModEntities.ROCKET.get(), shooter, level);
+    }
+
+    public RocketEntity(Level level, LivingEntity shooter, boolean heavy)
+    {
+        this(level, shooter);
+        this.heavy = heavy;
     }
 
     @Override
@@ -62,7 +76,8 @@ public class RocketEntity extends ThrowableItemProjectile
     {
         super.onHitEntity(result);
         if (!this.level().isClientSide)
-            result.getEntity().hurt(this.damageSources().thrown(this, this.getOwner()), DIRECT_DAMAGE);
+            result.getEntity().hurt(this.damageSources().thrown(this, this.getOwner()),
+                    heavy ? HEAVY_DIRECT_DAMAGE : DIRECT_DAMAGE);
     }
 
     @Override
@@ -75,8 +90,12 @@ public class RocketEntity extends ThrowableItemProjectile
 
     private void explode()
     {
-        this.level().explode(this, this.getX(), this.getY(), this.getZ(),
-                EXPLOSION_RADIUS, Level.ExplosionInteraction.NONE);
+        if (heavy)
+            this.level().explode(this, this.getX(), this.getY(), this.getZ(),
+                    HEAVY_EXPLOSION_RADIUS, Level.ExplosionInteraction.BLOCK);
+        else
+            this.level().explode(this, this.getX(), this.getY(), this.getZ(),
+                    EXPLOSION_RADIUS, Level.ExplosionInteraction.NONE);
         this.discard();
     }
 }

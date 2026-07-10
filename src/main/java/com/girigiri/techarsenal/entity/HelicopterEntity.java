@@ -89,7 +89,7 @@ public class HelicopterEntity extends VehicleEntityBase implements ArmedVehicle
                 .add(right.scale(leftPod ? -POD_OFFSET : POD_OFFSET))
                 .add(look.scale(1.5D));
 
-        RocketEntity rocket = new RocketEntity(this.level(), rider);
+        RocketEntity rocket = new RocketEntity(this.level(), rider, true);
         rocket.setPos(muzzle);
         rocket.shoot(look.x, look.y, look.z, 2.5F, 0.0F);
         this.level().addFreshEntity(rocket);
