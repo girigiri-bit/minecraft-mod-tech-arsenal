@@ -36,13 +36,17 @@ import java.util.Map;
 /**
  * Client-side live feed capture. Each active monitor screen gets an offscreen
  * RenderTarget; the level is re-rendered from the camera's viewpoint into it
- * at a fixed interval (one capture per frame at most), and the target's color
- * texture is drawn onto the monitor by the block entity renderer.
+ * every frame (one capture per frame, shared round-robin between screens),
+ * and the target's color texture is drawn onto the monitor by the block
+ * entity renderer.
  */
 @Mod.EventBusSubscriber(modid = TechArsenal.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class FeedManager
 {
-    private static final int CAPTURE_INTERVAL_TICKS = 10;
+    // One feed capture per frame keeps the feed real-time; with several
+    // screens visible the frames are shared round-robin. On failure a feed
+    // backs off so a broken capture can't spam the log every frame.
+    private static final long ERROR_BACKOFF_FRAMES = 40;
     private static final long EVICT_AFTER_FRAMES = 600;
     private static final double MAX_CAMERA_DISTANCE = 64.0D;
 
@@ -64,8 +68,9 @@ public final class FeedManager
         float captureYaw;
         float capturePitch;
         // Large negative sentinel; must stay far from Long.MIN_VALUE so
-        // (gameTime - lastCaptureGameTime) can't overflow
-        long lastCaptureGameTime = -1_000_000L;
+        // (frameCounter - nextCaptureFrame) can't overflow
+        long nextCaptureFrame = -1_000_000L;
+        long lastCaptureFrame = -1_000_000L;
         long lastRequestFrame;
         boolean everCaptured;
     }
@@ -212,22 +217,21 @@ public final class FeedManager
             return;
 
         // Capture at most one feed per frame, picking the most out-of-date one
-        long gameTime = mc.level.getGameTime();
         Feed due = null;
         for (Feed feed : FEEDS.values())
         {
             if (frameCounter - feed.lastRequestFrame > 2)
                 continue;
-            if (gameTime - feed.lastCaptureGameTime < CAPTURE_INTERVAL_TICKS)
+            if (frameCounter < feed.nextCaptureFrame)
                 continue;
-            if (due == null || feed.lastCaptureGameTime < due.lastCaptureGameTime)
+            if (due == null || feed.lastCaptureFrame < due.lastCaptureFrame)
                 due = feed;
         }
         if (due != null)
-            capture(mc, due, gameTime);
+            capture(mc, due);
     }
 
-    private static void capture(Minecraft mc, Feed feed, long gameTime)
+    private static void capture(Minecraft mc, Feed feed)
     {
         if (capturing)
             return;
@@ -252,14 +256,15 @@ public final class FeedManager
             mc.gameRenderer.renderLevel(1.0F, Util.getNanos(), new PoseStack());
             if (shaders)
                 blitMainIntoFeed(mc, feed);
-            feed.lastCaptureGameTime = gameTime;
+            feed.lastCaptureFrame = frameCounter;
+            feed.nextCaptureFrame = frameCounter + 1;
             feed.everCaptured = true;
-            TechArsenal.LOGGER.debug("Captured monitor feed at {} from {}", feed.textureLocation, feed.capturePos);
         }
         catch (Exception e)
         {
             TechArsenal.LOGGER.error("Monitor feed capture failed", e);
-            feed.lastCaptureGameTime = gameTime; // don't retry every frame
+            feed.lastCaptureFrame = frameCounter;
+            feed.nextCaptureFrame = frameCounter + ERROR_BACKOFF_FRAMES;
         }
         finally
         {
