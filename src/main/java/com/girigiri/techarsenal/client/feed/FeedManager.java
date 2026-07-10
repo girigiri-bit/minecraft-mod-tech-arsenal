@@ -6,7 +6,9 @@ import com.girigiri.techarsenal.blockentity.MonitorBlockEntity;
 import com.girigiri.techarsenal.entity.CameraEntity;
 import com.girigiri.techarsenal.registry.ModEntities;
 import com.girigiri.techarsenal.util.MonitorScreen;
+import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.Util;
 import net.minecraft.client.GraphicsStatus;
@@ -22,7 +24,11 @@ import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL30;
+
 import javax.annotation.Nullable;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -67,6 +73,51 @@ public final class FeedManager
     private static final Map<BlockPos, Feed> FEEDS = new HashMap<>();
     private static long frameCounter;
     private static boolean capturing;
+
+    // Shader mods (OptiFine, Iris/Oculus) composite the level into the main
+    // render target regardless of which framebuffer is bound, so the feed
+    // capture has to copy the result out of the main target afterwards.
+    private static Method shaderCheck;
+    private static Object shaderCheckReceiver;
+    private static boolean shaderCheckResolved;
+
+    private static boolean shadersActive()
+    {
+        if (!shaderCheckResolved)
+        {
+            shaderCheckResolved = true;
+            try
+            {
+                // OptiFine: static boolean net.optifine.Config.isShaders()
+                shaderCheck = Class.forName("net.optifine.Config").getMethod("isShaders");
+            }
+            catch (Throwable optifineAbsent)
+            {
+                try
+                {
+                    // Iris/Oculus: IrisApi.getInstance().isShaderPackInUse()
+                    Class<?> api = Class.forName("net.irisshaders.iris.api.v0.IrisApi");
+                    shaderCheckReceiver = api.getMethod("getInstance").invoke(null);
+                    shaderCheck = api.getMethod("isShaderPackInUse");
+                }
+                catch (Throwable irisAbsent)
+                {
+                    shaderCheck = null;
+                }
+            }
+        }
+        if (shaderCheck == null)
+            return false;
+        try
+        {
+            return (Boolean) shaderCheck.invoke(shaderCheckReceiver);
+        }
+        catch (Throwable t)
+        {
+            shaderCheck = null;
+            return false;
+        }
+    }
 
     public static boolean isCapturing()
     {
@@ -194,10 +245,13 @@ public final class FeedManager
             camera.yRotO = feed.captureYaw;
             camera.xRotO = feed.capturePitch;
 
+            boolean shaders = shadersActive();
             mc.setCameraEntity(camera);
             feed.target.clear(Minecraft.ON_OSX);
             feed.target.bindWrite(true);
             mc.gameRenderer.renderLevel(1.0F, Util.getNanos(), new PoseStack());
+            if (shaders)
+                blitMainIntoFeed(mc, feed);
             feed.lastCaptureGameTime = gameTime;
             feed.everCaptured = true;
             TechArsenal.LOGGER.debug("Captured monitor feed at {} from {}", feed.textureLocation, feed.capturePos);
@@ -213,6 +267,22 @@ public final class FeedManager
             mc.setCameraEntity(previousCamera != null ? previousCamera : mc.player);
             capturing = false;
         }
+    }
+
+    /**
+     * With a shader pack active the composited camera view ends up in the main
+     * render target (the capture happens before this frame's own level render,
+     * which clears and redraws it, so nothing user-visible is disturbed).
+     */
+    private static void blitMainIntoFeed(Minecraft mc, Feed feed)
+    {
+        RenderTarget main = mc.getMainRenderTarget();
+        GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, main.frameBufferId);
+        GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, feed.target.frameBufferId);
+        GL30.glBlitFramebuffer(0, 0, main.width, main.height,
+                0, 0, feed.target.width, feed.target.height,
+                GL11.GL_COLOR_BUFFER_BIT, GL11.GL_LINEAR);
+        GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
     }
 
     private static void evictStale(Minecraft mc)

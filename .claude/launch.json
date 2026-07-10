@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Minecraft Client",
+      "runtimeExecutable": "./gradlew.bat",
+      "runtimeArgs": ["runClient", "--no-daemon"]
+    },
+    {
+      "name": "Minecraft Dedicated Server",
+      "runtimeExecutable": "./gradlew.bat",
+      "runtimeArgs": ["runServer", "--no-daemon"],
+      "port": 25565
+    },
+    {
+      "name": "Game Test Server",
+      "runtimeExecutable": "./gradlew.bat",
+      "runtimeArgs": ["runGameTestServer", "--no-daemon"]
+    }
+  ]
+}
