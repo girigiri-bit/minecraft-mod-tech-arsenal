@@ -338,6 +338,18 @@ public final class FeedManager
 
             boolean shaders = shadersActive();
             mc.setCameraEntity(camera);
+            if (shaders)
+            {
+                // capture() runs at Phase.START, so the main target still holds
+                // the PREVIOUS frame's full composite - including the player's
+                // first-person hand and HUD. OptiFine composites this offscreen
+                // renderLevel into the main target (that's what blitMainIntoFeed
+                // copies out), but leftover hand/HUD pixels bleed through into
+                // the feed. Clear main first so only the fresh camera view is
+                // copied; the normal frame render after Phase.START repaints
+                // main, so this is invisible on the real screen.
+                mc.getMainRenderTarget().clear(Minecraft.ON_OSX);
+            }
             feed.target.clear(Minecraft.ON_OSX);
             feed.target.bindWrite(true);
             mc.gameRenderer.renderLevel(1.0F, Util.getNanos(), new PoseStack());

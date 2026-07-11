@@ -26,6 +26,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.MovementInputUpdateEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.client.event.RenderPlayerEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -361,6 +362,21 @@ public final class ClientCameraHooks
                 partialTick, event.getPoseStack(), buffers,
                 dispatcher.getPackedLightCoords(player, partialTick));
         buffers.endBatch();
+    }
+
+    /**
+     * While the server-driven CAM view is active the player's body is teleported
+     * onto the camera, so vanilla (camera entity != player) would render the
+     * player model point-blank around the lens - the camera sits inside the
+     * avatar and sees the dark model interior, blacking out the view. Hide the
+     * local player for the duration. SAT view (active) is unaffected: there the
+     * body genuinely stays put and should show in the feed.
+     */
+    @SubscribeEvent
+    public static void onRenderPlayer(RenderPlayerEvent.Pre event)
+    {
+        if (remoteActive && event.getEntity() == Minecraft.getInstance().player)
+            event.setCanceled(true);
     }
 
     @SubscribeEvent
