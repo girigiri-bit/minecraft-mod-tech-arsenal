@@ -82,7 +82,6 @@ public final class FeedManager
     // continuous flicker back when capture ran every frame.
     private static final long ERROR_BACKOFF_FRAMES = 40;
     private static final long EVICT_AFTER_FRAMES = 600;
-    private static final double MAX_CAMERA_DISTANCE = 64.0D;
     // Under a shader pack, allow a real (masked) capture only this often.
     private static final long SHADER_REFRESH_INTERVAL_FRAMES = 6;
 
@@ -222,9 +221,13 @@ public final class FeedManager
         {
             label = "CAM-" + be.getCamId();
             BlockPos camPos = be.getCamPos();
+            // No explicit distance cap (v0.9): a wall monitor renders many feeds
+            // at once and can't use the single-viewpoint spectate trick, so its
+            // range is bounded only by whatever chunks the client already has
+            // loaded (roughly render distance). Cameras in unloaded chunks just
+            // read as NO SIGNAL.
             if (!mc.level.isLoaded(camPos)
-                    || !(mc.level.getBlockState(camPos).getBlock() instanceof SecurityCameraBlock)
-                    || !camPos.closerThan(be.getBlockPos(), MAX_CAMERA_DISTANCE))
+                    || !(mc.level.getBlockState(camPos).getBlock() instanceof SecurityCameraBlock))
             {
                 return new FeedView(null, label, 1.0F);
             }

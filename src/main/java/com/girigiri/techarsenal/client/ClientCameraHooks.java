@@ -1,13 +1,14 @@
 package com.girigiri.techarsenal.client;
 
 import com.girigiri.techarsenal.TechArsenal;
-import com.girigiri.techarsenal.block.SecurityCameraBlock;
 import com.girigiri.techarsenal.client.feed.FeedManager;
 import com.girigiri.techarsenal.entity.CameraEntity;
 import com.girigiri.techarsenal.item.CameraMonitorItem;
 import com.girigiri.techarsenal.item.SatelliteRemoteItem;
+import com.girigiri.techarsenal.network.CloseCameraViewPacket;
+import com.girigiri.techarsenal.network.CycleCameraViewPacket;
 import com.girigiri.techarsenal.network.ModNetwork;
-import com.girigiri.techarsenal.network.SelectCameraPacket;
+import com.girigiri.techarsenal.network.OpenCameraViewPacket;
 import com.girigiri.techarsenal.registry.ModEntities;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
@@ -15,7 +16,6 @@ import net.minecraft.client.player.Input;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
@@ -31,15 +31,28 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import javax.annotation.Nullable;
-import java.util.List;
 
 /**
- * Client-only camera view controller. The camera entity is never added to the
- * world — it only exists as the render viewpoint. Sneak exits the view.
+ * Client-side camera view controller.
+ * <p>
+ * Two independent view kinds are handled here:
+ * <ul>
+ *   <li><b>SAT</b> (satellite remote) — a pure client-side view: a
+ *       {@link CameraEntity} is created locally and handed to
+ *       {@link Minecraft#setCameraEntity}; it is never added to the world.
+ *       Sneak exits.</li>
+ *   <li><b>CAM</b> (camera monitor, V-key) — server-driven since v0.9. The
+ *       client only sends packets; the server spectates the player onto a real
+ *       server-spawned {@link CameraEntity} via {@code ServerPlayer#setCamera},
+ *       which streams the remote chunks and lifts the old 64m limit. The client
+ *       detects the resulting remote view by watching {@link Minecraft#getCameraEntity()}
+ *       and mirrors the server's truth — it never drives the CAM view locally.</li>
+ * </ul>
  */
 @Mod.EventBusSubscriber(modid = TechArsenal.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class ClientCameraHooks
 {
+    // --- SAT (local) view state ---
     private static boolean active;
     private static String activeLabel = "";
     @Nullable
@@ -47,12 +60,22 @@ public final class ClientCameraHooks
     @Nullable
     private static CameraType previousCameraType;
 
-    /** Hand that opened the current CameraMonitorItem view; null for SAT view or no view. */
+    // --- CAM (server-driven remote) view state ---
+    /** True while the server has us spectating a server-spawned CameraEntity. */
+    private static boolean remoteActive;
+    /** Hand that opened the CAM view once confirmed; null otherwise. Display only. */
     @Nullable
     private static InteractionHand activeHand;
-    private static int activeCameraId = -1;
+    /** Hand of a pending OpenCameraViewPacket, promoted to activeHand on confirm. */
+    @Nullable
+    private static InteractionHand pendingHand;
+
+    // Click-cycle debounce (shared: SAT swallows clicks, CAM sends cycle packets).
     private static boolean attackLatch;
     private static boolean useLatch;
+    // Sneak-to-close debounce for the remote view (send CloseCameraViewPacket once
+    // per hold instead of every tick).
+    private static boolean shiftCloseLatch;
 
     private ClientCameraHooks()
     {
@@ -93,17 +116,16 @@ public final class ClientCameraHooks
         previousCameraType = null;
         active = false;
 
-        // A stale activeHand could let a later SAT view incorrectly accept
-        // cycling input, so clear all of the click-cycling state here too.
+        // A stale activeHand could let a later view incorrectly accept cycling
+        // input, so clear the shared click state here too.
         activeHand = null;
-        activeCameraId = -1;
         attackLatch = false;
         useLatch = false;
     }
 
     public static boolean isActive()
     {
-        return active;
+        return active || remoteActive;
     }
 
     /** Shown when right-clicking a view item — the view itself is on the keybind. */
@@ -118,9 +140,17 @@ public final class ClientCameraHooks
     /** Keybind handler: toggles the camera view based on the held item. */
     private static void toggleFromHeldItem(Minecraft mc)
     {
+        // Already viewing? V closes it. SAT is local; CAM asks the server to end
+        // (client state flips only when the server actually reverts our camera,
+        // so it can never desync from server truth).
         if (active)
         {
             deactivate();
+            return;
+        }
+        if (remoteActive)
+        {
+            ModNetwork.CHANNEL.sendToServer(new CloseCameraViewPacket());
             return;
         }
 
@@ -137,162 +167,61 @@ public final class ClientCameraHooks
             }
             if (stack.getItem() instanceof CameraMonitorItem)
             {
-                openLinkedCamera(mc, player, stack, hand);
+                // CAM view is fully server-driven now: just request it. The
+                // server validates the item, list, registry and block, opens
+                // the spectate, and writes SelectedCameraId back to the stack.
+                int selectedId = CameraMonitorItem.getSelectedId(stack);
+                pendingHand = hand;
+                ModNetwork.CHANNEL.sendToServer(new OpenCameraViewPacket(hand.ordinal(), selectedId));
                 return;
             }
         }
         player.displayClientMessage(Component.translatable("message.techarsenal.hold_view_item"), true);
     }
 
-    private static boolean isCameraValid(Minecraft mc, Player player, BlockPos pos)
-    {
-        return mc.level.getBlockState(pos).getBlock() instanceof SecurityCameraBlock
-                && player.distanceToSqr(Vec3.atCenterOf(pos)) <= CameraMonitorItem.MAX_VIEW_DISTANCE * CameraMonitorItem.MAX_VIEW_DISTANCE;
-    }
-
-    private static Vec3 viewPosFor(BlockPos cameraPos, float yaw)
-    {
-        Vec3 facing = Vec3.directionFromRotation(0.0F, yaw);
-        return Vec3.atCenterOf(cameraPos).add(facing.scale(0.6D));
-    }
-
-    private static void openLinkedCamera(Minecraft mc, Player player, ItemStack stack, InteractionHand hand)
-    {
-        List<CameraMonitorItem.CameraLink> cameras = CameraMonitorItem.readCameras(stack);
-        if (cameras.isEmpty())
-        {
-            player.displayClientMessage(Component.translatable("message.techarsenal.camera_not_linked"), true);
-            return;
-        }
-
-        int selectedId = CameraMonitorItem.getSelectedId(stack);
-        CameraMonitorItem.CameraLink chosen = null;
-        for (CameraMonitorItem.CameraLink link : cameras)
-        {
-            if (link.id() == selectedId && isCameraValid(mc, player, link.pos()))
-            {
-                chosen = link;
-                break;
-            }
-        }
-        if (chosen == null)
-        {
-            for (CameraMonitorItem.CameraLink link : cameras)
-            {
-                if (isCameraValid(mc, player, link.pos()))
-                {
-                    chosen = link;
-                    break;
-                }
-            }
-        }
-        if (chosen == null)
-        {
-            player.displayClientMessage(Component.translatable("message.techarsenal.camera_none_valid"), true);
-            return;
-        }
-
-        Vec3 viewPos = viewPosFor(chosen.pos(), chosen.yaw());
-        String label = "CAM-" + chosen.id();
-        activate(viewPos, chosen.yaw(), 15.0F, label);
-        activeHand = hand;
-        activeCameraId = chosen.id();
-
-        if (chosen.id() != selectedId)
-            ModNetwork.CHANNEL.sendToServer(new SelectCameraPacket(hand.ordinal(), chosen.id()));
-    }
-
     /**
-     * Left/right-click while a camera view (not SAT) is active: step to the
-     * next lower/higher registered camera id, wrapping, skipping any entry
-     * whose block is gone or now out of range of the player's live position.
-     * Bounded to list.size() attempts so it can never hang.
+     * Refreshes the action-bar hint for whichever view is active. For the CAM
+     * view the label is read live from the stack's SelectedCameraId (the server
+     * owns it), so no client-side id tracking is needed.
      */
-    private static void cycleCamera(Minecraft mc, int direction)
+    private static void refreshHint(Minecraft mc)
     {
-        if (activeHand == null)
-            return;
-        Player player = mc.player;
-        if (player == null)
-            return;
-
-        ItemStack stack = player.getItemInHand(activeHand);
-        if (!(stack.getItem() instanceof CameraMonitorItem))
+        Component hint;
+        if (remoteActive && activeHand != null)
         {
-            deactivate();
-            return;
+            ItemStack held = mc.player.getItemInHand(activeHand);
+            String label = "CAM-" + CameraMonitorItem.getSelectedId(held);
+            if (held.getItem() instanceof CameraMonitorItem
+                    && CameraMonitorItem.readCameras(held).size() >= 2)
+                hint = Component.translatable("message.techarsenal.camera_cycle_hint", label);
+            else
+                hint = Component.translatable("message.techarsenal.camera_exit_hint_labeled", label);
         }
-
-        List<CameraMonitorItem.CameraLink> cameras = CameraMonitorItem.readCameras(stack);
-        if (cameras.isEmpty() || camera == null)
+        else
         {
-            deactivate();
-            return;
+            hint = Component.translatable("message.techarsenal.camera_exit_hint_labeled", activeLabel);
         }
-
-        int size = cameras.size();
-        int currentIndex = -1;
-        for (int i = 0; i < size; i++)
-        {
-            if (cameras.get(i).id() == activeCameraId)
-            {
-                currentIndex = i;
-                break;
-            }
-        }
-        if (currentIndex == -1)
-            currentIndex = direction > 0 ? size - 1 : 0;
-
-        CameraMonitorItem.CameraLink chosen = null;
-        int index = currentIndex;
-        for (int attempt = 0; attempt < size; attempt++)
-        {
-            index = Math.floorMod(index + direction, size);
-            CameraMonitorItem.CameraLink candidate = cameras.get(index);
-            if (candidate.id() == activeCameraId && size > 1)
-                continue;
-            if (isCameraValid(mc, player, candidate.pos()))
-            {
-                chosen = candidate;
-                break;
-            }
-        }
-
-        if (chosen == null)
-        {
-            player.displayClientMessage(Component.translatable("message.techarsenal.camera_no_switch_target"), true);
-            return;
-        }
-
-        Vec3 viewPos = viewPosFor(chosen.pos(), chosen.yaw());
-        camera.moveTo(viewPos.x, viewPos.y, viewPos.z, chosen.yaw(), 15.0F);
-        camera.xo = viewPos.x;
-        camera.yo = viewPos.y;
-        camera.zo = viewPos.z;
-        camera.yRotO = chosen.yaw();
-        camera.xRotO = 15.0F;
-
-        activeCameraId = chosen.id();
-        activeLabel = "CAM-" + chosen.id();
-        player.displayClientMessage(Component.translatable("message.techarsenal.camera_exit_hint_labeled", activeLabel), true);
-
-        ModNetwork.CHANNEL.sendToServer(new SelectCameraPacket(activeHand.ordinal(), chosen.id()));
+        mc.player.displayClientMessage(hint, true);
     }
 
     @SubscribeEvent
     public static void onClickInput(InputEvent.InteractionKeyMappingTriggered event)
     {
-        if (!active)
+        if (!active && !remoteActive)
             return;
         event.setCanceled(true);
         event.setSwingHand(false);
-        Minecraft mc = Minecraft.getInstance();
+
+        // SAT just swallows clicks (no cycling); only the remote CAM view cycles.
+        if (!remoteActive)
+            return;
+
         if (event.isAttack())
         {
             if (!attackLatch)
             {
                 attackLatch = true;
-                cycleCamera(mc, -1);
+                ModNetwork.CHANNEL.sendToServer(new CycleCameraViewPacket(-1)); // left = previous
             }
         }
         else if (event.isUseItem())
@@ -300,7 +229,7 @@ public final class ClientCameraHooks
             if (event.getHand() == InteractionHand.MAIN_HAND && !useLatch)
             {
                 useLatch = true;
-                cycleCamera(mc, 1);
+                ModNetwork.CHANNEL.sendToServer(new CycleCameraViewPacket(1)); // right = next
             }
         }
     }
@@ -316,6 +245,15 @@ public final class ClientCameraHooks
         {
             if (active)
                 deactivate();
+            // Drop any remote-view bookkeeping too; the server session is gone
+            // with the connection.
+            remoteActive = false;
+            activeHand = null;
+            pendingHand = null;
+            previousCameraType = null;
+            attackLatch = false;
+            useLatch = false;
+            shiftCloseLatch = false;
             return;
         }
 
@@ -330,42 +268,73 @@ public final class ClientCameraHooks
             attackLatch = false;
         if (!mc.options.keyUse.isDown())
             useLatch = false;
+        if (!mc.options.keyShift.isDown())
+            shiftCloseLatch = false;
 
-        if (!active)
-            return;
-
-        if (camera == null || camera.level() != mc.level)
+        // --- remote (CAM) view edge detection ---
+        // The server drives the CAM view by setting our camera entity to a
+        // server-spawned CameraEntity. The local SAT anchor is the only
+        // CameraEntity we ever set ourselves, so anything else that is a
+        // CameraEntity is the remote view.
+        boolean nowRemote = mc.getCameraEntity() instanceof CameraEntity e && e != camera;
+        if (nowRemote && !remoteActive)
         {
-            deactivate();
-            return;
+            remoteActive = true;
+            previousCameraType = mc.options.getCameraType();
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+            activeHand = pendingHand;
+            refreshHint(mc);
+        }
+        else if (!nowRemote && remoteActive)
+        {
+            if (previousCameraType != null)
+                mc.options.setCameraType(previousCameraType);
+            previousCameraType = null;
+            remoteActive = false;
+            activeHand = null;
+            pendingHand = null;
+            attackLatch = false;
+            useLatch = false;
         }
 
-        if (mc.options.keyShift.isDown())
+        // --- SAT (local) view maintenance ---
+        if (active)
         {
-            deactivate();
-            return;
-        }
-
-        // Keep the exit hint visible for the whole camera session — the action
-        // bar fades after a few seconds and players otherwise look "stuck"
-        if (mc.level.getGameTime() % 40L == 0L)
-        {
-            Component hint = Component.translatable("message.techarsenal.camera_exit_hint_labeled", activeLabel);
-            if (activeHand != null)
+            if (camera == null || camera.level() != mc.level)
             {
-                ItemStack heldStack = mc.player.getItemInHand(activeHand);
-                if (heldStack.getItem() instanceof CameraMonitorItem
-                        && CameraMonitorItem.readCameras(heldStack).size() >= 2)
-                    hint = Component.translatable("message.techarsenal.camera_cycle_hint", activeLabel);
+                deactivate();
+                return;
             }
-            mc.player.displayClientMessage(hint, true);
+            if (mc.options.keyShift.isDown())
+            {
+                deactivate();
+                return;
+            }
         }
+
+        // --- remote (CAM) view: sneak requests close (once per hold) ---
+        if (remoteActive && mc.options.keyShift.isDown() && !shiftCloseLatch)
+        {
+            shiftCloseLatch = true;
+            ModNetwork.CHANNEL.sendToServer(new CloseCameraViewPacket());
+        }
+
+        // Keep the exit hint visible for the whole session — the action bar
+        // fades after a few seconds and players otherwise look "stuck".
+        if ((active || remoteActive) && mc.level.getGameTime() % 40L == 0L)
+            refreshHint(mc);
     }
 
     /**
      * Vanilla skips rendering the local player whenever the camera entity is
-     * not the player, so they would be invisible in their own camera feeds.
-     * Render them manually while a camera view or a monitor capture is active.
+     * not the player, so they would be invisible in their own monitor feeds.
+     * Render them manually while a SAT view or a monitor capture is active.
+     * <p>
+     * NOTE: intentionally NOT extended to {@code remoteActive}. In the
+     * server-driven CAM view the player's actual body stands at the camera
+     * position, so vanilla already draws it there — re-drawing it here would
+     * duplicate it. This hack only matters when the body stays elsewhere (SAT,
+     * or an offscreen monitor capture).
      */
     @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event)
@@ -397,9 +366,12 @@ public final class ClientCameraHooks
     @SubscribeEvent
     public static void onMovementInput(MovementInputUpdateEvent event)
     {
-        if (!active)
+        if (!active && !remoteActive)
             return;
 
+        // While remote-viewing, the body is the server's to move; suppressing
+        // input here (esp. shiftKeyDown) keeps vanilla's own sneak-dismount from
+        // racing our explicit CloseCameraViewPacket.
         Input input = event.getInput();
         input.forwardImpulse = 0.0F;
         input.leftImpulse = 0.0F;

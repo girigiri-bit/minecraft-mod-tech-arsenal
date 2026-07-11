@@ -37,7 +37,6 @@ public class CameraMonitorItem extends Item
     public static final String TAG_CAMERAS = "Cameras";
     public static final String TAG_SELECTED_ID = "SelectedCameraId";
     public static final int MAX_CAMERAS = 24;
-    public static final double MAX_VIEW_DISTANCE = 64.0D;
 
     public CameraMonitorItem(Properties properties)
     {

@@ -24,7 +24,11 @@ public final class ModNetwork
                 FireVehicleWeaponPacket::encode, FireVehicleWeaponPacket::decode, FireVehicleWeaponPacket::handle);
         CHANNEL.registerMessage(id++, SaberSpecialPacket.class,
                 SaberSpecialPacket::encode, SaberSpecialPacket::decode, SaberSpecialPacket::handle);
-        CHANNEL.registerMessage(id++, SelectCameraPacket.class,
-                SelectCameraPacket::encode, SelectCameraPacket::decode, SelectCameraPacket::handle);
+        CHANNEL.registerMessage(id++, OpenCameraViewPacket.class,
+                OpenCameraViewPacket::encode, OpenCameraViewPacket::decode, OpenCameraViewPacket::handle);
+        CHANNEL.registerMessage(id++, CycleCameraViewPacket.class,
+                CycleCameraViewPacket::encode, CycleCameraViewPacket::decode, CycleCameraViewPacket::handle);
+        CHANNEL.registerMessage(id++, CloseCameraViewPacket.class,
+                CloseCameraViewPacket::encode, CloseCameraViewPacket::decode, CloseCameraViewPacket::handle);
     }
 }
