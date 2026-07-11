@@ -40,26 +40,58 @@ import java.util.Map;
  * and the target's color texture is drawn onto the monitor by the block
  * entity renderer.
  * <p>
- * While a shader pack (OptiFine/Iris) is active, capture is suspended
- * entirely: a second {@code renderLevel} per frame corrupts the shader
- * pack's global cross-frame state (frame parity, temporal buffers, weather
- * uniforms) and makes the whole sky flicker. Feeds degrade to their last
- * captured frame (or NO SIGNAL if never captured) until shaders are
- * disabled, at which point live capture resumes automatically.
+ * While a shader pack (OptiFine/Iris) is active, an extra {@code renderLevel}
+ * per frame corrupts the shader pack's global cross-frame state (frame parity,
+ * temporal buffers, weather uniforms). Commit d30a27a established empirically
+ * that this corruption only affects the single displayed frame immediately
+ * following the extra render call - the pipeline self-recovers after it. So
+ * instead of suspending capture forever, we keep the feed live via a
+ * "masked capture frame": a real capture is allowed only roughly every
+ * {@link #SHADER_REFRESH_INTERVAL_FRAMES} frames (~1.7s at 60fps), and the one
+ * polluted frame it produces is hidden from the player by re-presenting the
+ * previous frame. One frame BEFORE a scheduled capture, the fully-composited
+ * main framebuffer is snapshotted into {@link #frameBackup} (Phase.END). On
+ * the capture frame the normal capture runs at Phase.START (polluting shader
+ * state for that frame only); then at Phase.END, before the frame is presented,
+ * the backup is blitted back over the main render target, so the user sees a
+ * repeated frame instead of the polluted one. Net cost is one duplicated frame
+ * (indistinguishable from a dropped frame) roughly every 1.7s per on-screen
+ * monitor.
+ * <p>
+ * Fallback safety nets: {@link #SHADER_LIVE_FEED} is a compile-time kill switch
+ * - set it to {@code false} and rebuild to reproduce exactly the earlier
+ * shipped behavior (commit 78493d4) where capture is fully suspended and feeds
+ * freeze on their last frame while shaders are active. {@link #shaderLiveBroken}
+ * is a runtime kill switch: any throwable in the masking path sets it and
+ * permanently degrades to that same frozen-frame behavior for the rest of the
+ * session, never crashing and never spamming the log.
  */
 @Mod.EventBusSubscriber(modid = TechArsenal.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class FeedManager
 {
     // One feed capture per frame keeps the feed real-time; with several
     // screens visible the frames are shared round-robin. On failure a feed
-    // backs off so a broken capture can't spam the log every frame. None of
-    // this runs while a shader pack is active (see shadersActive() and the
-    // gate in onRenderTick) - there is no safe capture frequency under a
-    // shader pack, since even one extra renderLevel per frame corrupts its
-    // global state, so capture is suspended entirely rather than throttled.
+    // backs off so a broken capture can't spam the log every frame. While a
+    // shader pack is active this every-frame path is gated off (see
+    // shadersActive() and the START gate in onRenderTick); capture is instead
+    // driven by the masked-capture scheduler (see onFrameEnd / the class
+    // javadoc), which allows one real capture every SHADER_REFRESH_INTERVAL_FRAMES
+    // frames and masks the single frame it pollutes. This is safe because the
+    // shader-state corruption from an extra renderLevel only affects that one
+    // following frame (empirically established in commit d30a27a); it was only
+    // continuous flicker back when capture ran every frame.
     private static final long ERROR_BACKOFF_FRAMES = 40;
     private static final long EVICT_AFTER_FRAMES = 600;
     private static final double MAX_CAMERA_DISTANCE = 64.0D;
+    // Under a shader pack, allow a real (masked) capture only this often.
+    private static final long SHADER_REFRESH_INTERVAL_FRAMES = 100;
+
+    // Compile-time kill switch: false reproduces exactly the 78493d4 shipped
+    // behavior (freeze feeds while shaders active, no masking attempted).
+    private static final boolean SHADER_LIVE_FEED = true;
+    // Large negative sentinel (same overflow-safety style as the Feed frame
+    // fields) meaning "no masked capture is currently scheduled".
+    private static final long MASKED_SENTINEL = -1_000_000L;
 
     public record FeedView(@Nullable ResourceLocation texture, String label, float aspect)
     {
@@ -89,6 +121,19 @@ public final class FeedManager
     private static final Map<BlockPos, Feed> FEEDS = new HashMap<>();
     private static long frameCounter;
     private static boolean capturing;
+
+    // Masked-capture state (only used while a shader pack is active). Full-
+    // resolution backup of the composited main framebuffer, snapshotted one
+    // frame before a scheduled capture and blitted back over the polluted
+    // capture frame before it is presented. Lazily created, resized with the
+    // window, destroyed with the feeds.
+    private static TextureTarget frameBackup;
+    // frameCounter value of the scheduled masked capture frame (the frame on
+    // which the real capture runs and whose polluted output is then masked).
+    private static long maskedCaptureFrame = MASKED_SENTINEL;
+    // Runtime kill switch: set once (never reset) if the masking path throws;
+    // afterwards behaves exactly like the 78493d4 gate (freeze under shaders).
+    private static boolean shaderLiveBroken;
 
     // Shader mods (OptiFine, Iris/Oculus) composite the level into the main
     // render target regardless of which framebuffer is bound, so the feed
@@ -193,10 +238,11 @@ public final class FeedManager
         feed.captureYaw = yaw;
         feed.capturePitch = pitch;
         feed.lastRequestFrame = frameCounter;
-        // Capture is paused while a shader pack is active (see onRenderTick);
-        // mark the label so a frozen frame isn't mistaken for a live one.
+        // Under shaders, mark the label so the player can tell the feed's mode
+        // apart: [SLOW] = live but refreshing only every ~1.7s via masked
+        // capture; [SHADERS] = frozen on last frame (masking disabled/broken).
         if (shadersActive())
-            label = label + " [SHADERS]";
+            label = label + ((SHADER_LIVE_FEED && !shaderLiveBroken) ? " [SLOW]" : " [SHADERS]");
         return new FeedView(feed.everCaptured ? feed.textureLocation : null, label, feed.aspect);
     }
 
@@ -217,6 +263,17 @@ public final class FeedManager
     @SubscribeEvent
     public static void onRenderTick(TickEvent.RenderTickEvent event)
     {
+        // TickEvent.Phase is START/END only. Phase.END fires after the world +
+        // HUD have been rendered into the main render target but BEFORE it is
+        // presented (Forge Minecraft.runTick: onRenderTickEnd is posted between
+        // gameRenderer.render(...) and mainRenderTarget.blitToScreen(...) /
+        // window.updateDisplay()), so it is the correct hook for both the
+        // pre-capture backup snapshot and the post-capture restore blit.
+        if (event.phase == TickEvent.Phase.END)
+        {
+            onFrameEnd();
+            return;
+        }
         if (event.phase != TickEvent.Phase.START)
             return;
 
@@ -233,12 +290,14 @@ public final class FeedManager
 
         // A shader pack (OptiFine/Iris) keeps global cross-frame state (frame
         // parity, temporal buffers, weather uniforms); a second renderLevel
-        // here pollutes that state and makes the real frame's sky/weather
-        // flicker. There is no safe capture frequency under a shader pack, so
-        // capture is suspended entirely for as long as one is active. Feeds
-        // degrade to their last captured frame (or NO SIGNAL if never
-        // captured) and resume live automatically once shaders are off.
-        if (shadersActive())
+        // here pollutes that state for the one following frame. So while
+        // shaders are active the every-frame path is gated off - EXCEPT on a
+        // frame the masked-capture scheduler (onFrameEnd) has specifically
+        // marked, where we do let the normal selection + capture run because
+        // its polluted output will be masked at Phase.END. capture()'s own
+        // shader branch (blitMainIntoFeed) still handles the copy-out.
+        if (shadersActive()
+                && !(SHADER_LIVE_FEED && !shaderLiveBroken && frameCounter == maskedCaptureFrame))
             return;
 
         // Capture at most one feed per frame, picking the most out-of-date one
@@ -282,7 +341,10 @@ public final class FeedManager
             if (shaders)
                 blitMainIntoFeed(mc, feed);
             feed.lastCaptureFrame = frameCounter;
-            feed.nextCaptureFrame = frameCounter + 1;
+            // Under shaders the frame cadence is decided by onFrameEnd, not by
+            // this field; keep it consistent so that if shaders toggle off
+            // right after, the every-frame path resumes from a sane baseline.
+            feed.nextCaptureFrame = frameCounter + (shaders ? SHADER_REFRESH_INTERVAL_FRAMES : 1);
             feed.everCaptured = true;
         }
         catch (Exception e)
@@ -315,6 +377,133 @@ public final class FeedManager
         GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
     }
 
+    /**
+     * End-of-frame masked-capture bookkeeping, run at RenderTickEvent Phase.END
+     * (after world + HUD render, before present). While a shader pack is
+     * active this either (a) restores the previous frame over the just-rendered
+     * polluted capture frame, or (b) snapshots the current frame and schedules
+     * the next frame to be a masked capture. Any throwable here permanently and
+     * safely degrades to the frozen-frame fallback (shaderLiveBroken).
+     */
+    private static void onFrameEnd()
+    {
+        if (!SHADER_LIVE_FEED || shaderLiveBroken)
+            return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null)
+            return;
+        // Match the START gate: never touch the composited frame under FABULOUS.
+        if (mc.options.graphicsMode().get() == GraphicsStatus.FABULOUS)
+            return;
+        if (!shadersActive())
+        {
+            // Shaders just turned off: drop any pending schedule so a stale
+            // mask can never be applied to a real (non-shader) frame.
+            maskedCaptureFrame = MASKED_SENTINEL;
+            return;
+        }
+
+        try
+        {
+            if (frameCounter == maskedCaptureFrame)
+            {
+                // This is the polluted capture frame that was just rendered.
+                // Hide it by re-presenting the frame we backed up last frame.
+                RenderTarget main = mc.getMainRenderTarget();
+                if (frameBackup != null
+                        && frameBackup.width == main.width
+                        && frameBackup.height == main.height)
+                {
+                    restoreMaskedFrame(mc);
+                }
+                // else: window resized in the single frame between backup and
+                // mask (rare). Let the one polluted frame through rather than
+                // blit a mismatched size - this is an accepted rare edge case.
+                maskedCaptureFrame = MASKED_SENTINEL;
+            }
+            else if (maskedCaptureFrame < frameCounter)
+            {
+                // No capture pending: decide whether the NEXT frame should be a
+                // masked capture. A feed qualifies if it is currently on-screen
+                // (same freshness window as the START selection loop) and it is
+                // due for a refresh. Only one masked capture is ever pending at
+                // a time; different feeds take turns across successive windows.
+                Feed due = null;
+                for (Feed feed : FEEDS.values())
+                {
+                    if (frameCounter - feed.lastRequestFrame > 2)
+                        continue;
+                    if (frameCounter - feed.lastCaptureFrame < SHADER_REFRESH_INTERVAL_FRAMES)
+                        continue;
+                    if (due == null || feed.lastCaptureFrame < due.lastCaptureFrame)
+                        due = feed;
+                }
+                if (due != null)
+                {
+                    ensureFrameBackup(mc);
+                    backupMainFrame(mc);
+                    // START of the next frame increments frameCounter to this
+                    // value; the START gate then lets that one capture through.
+                    maskedCaptureFrame = frameCounter + 1;
+                }
+            }
+        }
+        catch (Throwable t)
+        {
+            TechArsenal.LOGGER.error(
+                    "Masked shader capture failed; falling back to frozen feed under shaders", t);
+            shaderLiveBroken = true;
+            maskedCaptureFrame = MASKED_SENTINEL;
+        }
+    }
+
+    private static void ensureFrameBackup(Minecraft mc)
+    {
+        RenderTarget main = mc.getMainRenderTarget();
+        if (frameBackup == null || frameBackup.width != main.width || frameBackup.height != main.height)
+        {
+            if (frameBackup != null)
+                frameBackup.destroyBuffers();
+            frameBackup = new TextureTarget(main.width, main.height, true, Minecraft.ON_OSX);
+        }
+    }
+
+    // Snapshot the composited main framebuffer into the backup (same size, so
+    // GL_NEAREST is exact and cheap). Opposite direction from restore.
+    private static void backupMainFrame(Minecraft mc)
+    {
+        RenderTarget main = mc.getMainRenderTarget();
+        GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, main.frameBufferId);
+        GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, frameBackup.frameBufferId);
+        GL30.glBlitFramebuffer(0, 0, main.width, main.height,
+                0, 0, frameBackup.width, frameBackup.height,
+                GL11.GL_COLOR_BUFFER_BIT, GL11.GL_NEAREST);
+        GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+    }
+
+    // Blit the backup back over the main render target, replacing the polluted
+    // capture frame just before it is presented. Caller has verified the sizes
+    // match, so GL_NEAREST is exact.
+    private static void restoreMaskedFrame(Minecraft mc)
+    {
+        RenderTarget main = mc.getMainRenderTarget();
+        GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, frameBackup.frameBufferId);
+        GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, main.frameBufferId);
+        GL30.glBlitFramebuffer(0, 0, frameBackup.width, frameBackup.height,
+                0, 0, main.width, main.height,
+                GL11.GL_COLOR_BUFFER_BIT, GL11.GL_NEAREST);
+        GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+    }
+
+    private static void destroyFrameBackup()
+    {
+        if (frameBackup != null)
+        {
+            frameBackup.destroyBuffers();
+            frameBackup = null;
+        }
+    }
+
     private static void evictStale(Minecraft mc)
     {
         Iterator<Map.Entry<BlockPos, Feed>> it = FEEDS.entrySet().iterator();
@@ -327,6 +516,9 @@ public final class FeedManager
                 it.remove();
             }
         }
+        // No feeds left: release the full-resolution masked-capture backup too.
+        if (FEEDS.isEmpty())
+            destroyFrameBackup();
     }
 
     private static void destroy(Minecraft mc, Feed feed)
@@ -343,5 +535,6 @@ public final class FeedManager
         Minecraft mc = Minecraft.getInstance();
         FEEDS.values().forEach(feed -> destroy(mc, feed));
         FEEDS.clear();
+        destroyFrameBackup();
     }
 }
