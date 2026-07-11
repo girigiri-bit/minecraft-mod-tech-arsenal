@@ -6,6 +6,7 @@ import com.girigiri.techarsenal.item.CameraMonitorItem;
 import com.girigiri.techarsenal.item.DeployableItem;
 import com.girigiri.techarsenal.item.DoorKeyItem;
 import com.girigiri.techarsenal.item.DroneItem;
+import com.girigiri.techarsenal.item.FieldManualItem;
 import com.girigiri.techarsenal.item.FlamethrowerItem;
 import com.girigiri.techarsenal.item.GrenadeLauncherItem;
 import com.girigiri.techarsenal.item.LaserDesignatorItem;
@@ -25,6 +26,9 @@ import net.minecraftforge.registries.RegistryObject;
 public class ModItems
 {
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, TechArsenal.MODID);
+
+    public static final RegistryObject<Item> FIELD_MANUAL = ITEMS.register("field_manual",
+            () -> new FieldManualItem(new Item.Properties().stacksTo(1)));
 
     public static final RegistryObject<Item> SECURITY_CAMERA = ITEMS.register("security_camera",
             () -> new BlockItem(ModBlocks.SECURITY_CAMERA.get(), new Item.Properties()));

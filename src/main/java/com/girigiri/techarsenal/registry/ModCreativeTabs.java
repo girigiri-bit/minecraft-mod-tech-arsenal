@@ -18,6 +18,7 @@ public class ModCreativeTabs
                     .title(Component.translatable("itemGroup.techarsenal"))
                     .icon(() -> ModItems.MISSILE_LAUNCHER.get().getDefaultInstance())
                     .displayItems((parameters, output) -> {
+                        output.accept(ModItems.FIELD_MANUAL.get());
                         output.accept(ModItems.SECURITY_CAMERA.get());
                         output.accept(ModItems.MONITOR.get());
                         output.accept(ModItems.FACE_SCANNER.get());
