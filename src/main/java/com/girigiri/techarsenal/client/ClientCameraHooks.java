@@ -337,6 +337,13 @@ public final class ClientCameraHooks
      * position, so vanilla already draws it there — re-drawing it here would
      * duplicate it. This hack only matters when the body stays elsewhere (SAT,
      * or an offscreen monitor capture).
+     * <p>
+     * Forge 1.20.1 actually patches {@code LevelRenderer} to render the local
+     * player even when it is not the view entity, so on Forge this manual
+     * render is a redundant second draw of identical geometry - kept as a
+     * safety net for OptiFine, whose rewritten entity loop may follow the
+     * vanilla (skip) rule; both draws are gated by the same
+     * {@code RenderPlayerEvent.Pre}.
      */
     @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event)
@@ -366,23 +373,23 @@ public final class ClientCameraHooks
     }
 
     /**
-     * Hide the local player's own body from camera imagery:
-     * <ul>
-     *   <li>CAM view (remoteActive): the body is teleported onto the camera, so
-     *       vanilla (camera entity != player) renders the model point-blank
-     *       around the lens - the camera sits inside the avatar and sees the
-     *       dark model interior, blacking out and cluttering the view.</li>
-     *   <li>Feed capture (isCapturing): a wall monitor's camera pointed near the
-     *       player would otherwise show the player's own third-person arm/held
-     *       item filling the feed. Other entities still render normally.</li>
-     * </ul>
-     * SAT view (active, not capturing) is unaffected: the body stays put and
-     * should show so the player can spot themselves from above.
+     * Hide the local player's own body ONLY in the CAM view (remoteActive): the
+     * body is teleported onto the camera, so vanilla (camera entity != player)
+     * renders the model point-blank around the lens - the camera sits inside the
+     * avatar and sees the dark model interior, blacking out the view.
+     * <p>
+     * Deliberately NOT canceled during FeedManager.isCapturing(): wall-monitor
+     * feeds must show the player's third-person body ("see yourself on the
+     * security camera"). The first-person hand bleed is handled separately by
+     * onRenderHand + the main-target clear in FeedManager.capture(); neither of
+     * those touches the body. (History: a prior build canceled here during
+     * capture and the body vanished from feeds - do not re-add isCapturing.)
+     * SAT view (active) is unaffected: the body stays put and should show.
      */
     @SubscribeEvent
     public static void onRenderPlayer(RenderPlayerEvent.Pre event)
     {
-        if ((remoteActive || FeedManager.isCapturing()) && event.getEntity() == Minecraft.getInstance().player)
+        if (remoteActive && event.getEntity() == Minecraft.getInstance().player)
             event.setCanceled(true);
     }
 
