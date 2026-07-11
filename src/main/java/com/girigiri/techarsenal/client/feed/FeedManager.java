@@ -47,7 +47,7 @@ import java.util.Map;
  * following the extra render call - the pipeline self-recovers after it. So
  * instead of suspending capture forever, we keep the feed live via a
  * "masked capture frame": a real capture is allowed only roughly every
- * {@link #SHADER_REFRESH_INTERVAL_FRAMES} frames (~0.5s at 60fps), and the one
+ * {@link #SHADER_REFRESH_INTERVAL_FRAMES} frames (~0.1s at 60fps), and the one
  * polluted frame it produces is hidden from the player by re-presenting the
  * previous frame. One frame BEFORE a scheduled capture, the fully-composited
  * main framebuffer is snapshotted into {@link #frameBackup} (Phase.END). On
@@ -84,7 +84,7 @@ public final class FeedManager
     private static final long EVICT_AFTER_FRAMES = 600;
     private static final double MAX_CAMERA_DISTANCE = 64.0D;
     // Under a shader pack, allow a real (masked) capture only this often.
-    private static final long SHADER_REFRESH_INTERVAL_FRAMES = 30;
+    private static final long SHADER_REFRESH_INTERVAL_FRAMES = 6;
 
     // Compile-time kill switch: false reproduces exactly the 78493d4 shipped
     // behavior (freeze feeds while shaders active, no masking attempted).
