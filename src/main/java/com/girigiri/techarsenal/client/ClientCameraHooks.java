@@ -389,12 +389,14 @@ public final class ClientCameraHooks
     /**
      * The first-person hand/held item is a separate render from the player body,
      * so hiding the body above still leaves it floating in a camera view. Cancel
-     * it while any TA camera view (SAT or CAM) is active.
+     * it while any TA camera view (SAT or CAM) is active. Also cancel during feed
+     * capture in case a shader pack renders a hand pass inside the offscreen
+     * renderLevel (belt-and-suspenders alongside the main-target clear).
      */
     @SubscribeEvent
     public static void onRenderHand(RenderHandEvent event)
     {
-        if (active || remoteActive)
+        if (active || remoteActive || FeedManager.isCapturing())
             event.setCanceled(true);
     }
 

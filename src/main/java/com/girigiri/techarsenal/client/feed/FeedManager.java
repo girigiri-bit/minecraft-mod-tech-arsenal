@@ -338,6 +338,18 @@ public final class FeedManager
 
             boolean shaders = shadersActive();
             mc.setCameraEntity(camera);
+            if (shaders)
+            {
+                // Under a shader pack the camera view ends up in the MAIN target
+                // and blitMainIntoFeed copies it out. But capture() runs at
+                // Phase.START, so main still holds the PREVIOUS frame's full
+                // composite - including the player's first-person hand/HUD - and
+                // that bleeds into the copied feed. Clear main first so only the
+                // fresh camera view (composited by the renderLevel below) is
+                // copied. The normal frame render after Phase.START repaints
+                // main, so this is invisible on the real screen.
+                mc.getMainRenderTarget().clear(Minecraft.ON_OSX);
+            }
             feed.target.clear(Minecraft.ON_OSX);
             feed.target.bindWrite(true);
             mc.gameRenderer.renderLevel(1.0F, Util.getNanos(), new PoseStack());
