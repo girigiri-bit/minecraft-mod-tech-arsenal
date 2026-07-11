@@ -25,6 +25,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.MovementInputUpdateEvent;
+import net.minecraftforge.client.event.RenderHandEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.event.RenderPlayerEvent;
 import net.minecraftforge.event.TickEvent;
@@ -365,17 +366,35 @@ public final class ClientCameraHooks
     }
 
     /**
-     * While the server-driven CAM view is active the player's body is teleported
-     * onto the camera, so vanilla (camera entity != player) would render the
-     * player model point-blank around the lens - the camera sits inside the
-     * avatar and sees the dark model interior, blacking out the view. Hide the
-     * local player for the duration. SAT view (active) is unaffected: there the
-     * body genuinely stays put and should show in the feed.
+     * Hide the local player's own body from camera imagery:
+     * <ul>
+     *   <li>CAM view (remoteActive): the body is teleported onto the camera, so
+     *       vanilla (camera entity != player) renders the model point-blank
+     *       around the lens - the camera sits inside the avatar and sees the
+     *       dark model interior, blacking out and cluttering the view.</li>
+     *   <li>Feed capture (isCapturing): a wall monitor's camera pointed near the
+     *       player would otherwise show the player's own third-person arm/held
+     *       item filling the feed. Other entities still render normally.</li>
+     * </ul>
+     * SAT view (active, not capturing) is unaffected: the body stays put and
+     * should show so the player can spot themselves from above.
      */
     @SubscribeEvent
     public static void onRenderPlayer(RenderPlayerEvent.Pre event)
     {
-        if (remoteActive && event.getEntity() == Minecraft.getInstance().player)
+        if ((remoteActive || FeedManager.isCapturing()) && event.getEntity() == Minecraft.getInstance().player)
+            event.setCanceled(true);
+    }
+
+    /**
+     * The first-person hand/held item is a separate render from the player body,
+     * so hiding the body above still leaves it floating in a camera view. Cancel
+     * it while any TA camera view (SAT or CAM) is active.
+     */
+    @SubscribeEvent
+    public static void onRenderHand(RenderHandEvent event)
+    {
+        if (active || remoteActive)
             event.setCanceled(true);
     }
 
