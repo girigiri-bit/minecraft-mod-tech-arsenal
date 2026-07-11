@@ -39,13 +39,24 @@ import java.util.Map;
  * every frame (one capture per frame, shared round-robin between screens),
  * and the target's color texture is drawn onto the monitor by the block
  * entity renderer.
+ * <p>
+ * While a shader pack (OptiFine/Iris) is active, capture is suspended
+ * entirely: a second {@code renderLevel} per frame corrupts the shader
+ * pack's global cross-frame state (frame parity, temporal buffers, weather
+ * uniforms) and makes the whole sky flicker. Feeds degrade to their last
+ * captured frame (or NO SIGNAL if never captured) until shaders are
+ * disabled, at which point live capture resumes automatically.
  */
 @Mod.EventBusSubscriber(modid = TechArsenal.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class FeedManager
 {
     // One feed capture per frame keeps the feed real-time; with several
     // screens visible the frames are shared round-robin. On failure a feed
-    // backs off so a broken capture can't spam the log every frame.
+    // backs off so a broken capture can't spam the log every frame. None of
+    // this runs while a shader pack is active (see shadersActive() and the
+    // gate in onRenderTick) - there is no safe capture frequency under a
+    // shader pack, since even one extra renderLevel per frame corrupts its
+    // global state, so capture is suspended entirely rather than throttled.
     private static final long ERROR_BACKOFF_FRAMES = 40;
     private static final long EVICT_AFTER_FRAMES = 600;
     private static final double MAX_CAMERA_DISTANCE = 64.0D;
@@ -182,6 +193,10 @@ public final class FeedManager
         feed.captureYaw = yaw;
         feed.capturePitch = pitch;
         feed.lastRequestFrame = frameCounter;
+        // Capture is paused while a shader pack is active (see onRenderTick);
+        // mark the label so a frozen frame isn't mistaken for a live one.
+        if (shadersActive())
+            label = label + " [SHADERS]";
         return new FeedView(feed.everCaptured ? feed.textureLocation : null, label, feed.aspect);
     }
 
@@ -214,6 +229,16 @@ public final class FeedManager
 
         // Post-processing transparency chains rebind the main target mid-render
         if (mc.options.graphicsMode().get() == GraphicsStatus.FABULOUS)
+            return;
+
+        // A shader pack (OptiFine/Iris) keeps global cross-frame state (frame
+        // parity, temporal buffers, weather uniforms); a second renderLevel
+        // here pollutes that state and makes the real frame's sky/weather
+        // flicker. There is no safe capture frequency under a shader pack, so
+        // capture is suspended entirely for as long as one is active. Feeds
+        // degrade to their last captured frame (or NO SIGNAL if never
+        // captured) and resume live automatically once shaders are off.
+        if (shadersActive())
             return;
 
         // Capture at most one feed per frame, picking the most out-of-date one
