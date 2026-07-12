@@ -10,6 +10,8 @@ import com.girigiri.techarsenal.network.CycleCameraViewPacket;
 import com.girigiri.techarsenal.network.ModNetwork;
 import com.girigiri.techarsenal.network.OpenCameraViewPacket;
 import com.girigiri.techarsenal.registry.ModEntities;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.platform.GlStateManager;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.Input;
@@ -31,6 +33,8 @@ import net.minecraftforge.client.event.RenderPlayerEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL30;
 
 import javax.annotation.Nullable;
 
@@ -328,9 +332,8 @@ public final class ClientCameraHooks
     }
 
     /**
-     * Vanilla skips rendering the local player whenever the camera entity is
-     * not the player, so they would be invisible in their own monitor feeds.
-     * Render them manually while a SAT view or a monitor capture is active.
+     * Draws the local player into its own monitor feeds ("see yourself on the
+     * security camera") while a SAT view or a wall-monitor capture is active.
      * <p>
      * NOTE: intentionally NOT extended to {@code remoteActive}. In the
      * server-driven CAM view the player's actual body stands at the camera
@@ -338,19 +341,25 @@ public final class ClientCameraHooks
      * duplicate it. This hack only matters when the body stays elsewhere (SAT,
      * or an offscreen monitor capture).
      * <p>
-     * Forge 1.20.1 actually patches {@code LevelRenderer} to render the local
-     * player even when it is not the view entity, so on Forge this manual
-     * render is a redundant second draw of identical geometry - kept as a
-     * safety net for OptiFine, whose rewritten entity loop may follow the
-     * vanilla (skip) rule; both draws are gated by the same
-     * {@code RenderPlayerEvent.Pre}.
+     * This manual draw is what actually puts the body into the <b>non-shader</b>
+     * feed. During {@link FeedManager}'s offscreen {@code renderLevel}, vanilla
+     * rebinds the main framebuffer before the {@code AFTER_ENTITIES} stage, so
+     * every entity (including the local player, whether drawn by vanilla/Forge or
+     * here) lands in the main target, not the feed's — terrain shows because it
+     * renders earlier while the feed target is still bound. So the draw below
+     * explicitly rebinds the feed target ({@link FeedManager#captureTarget})
+     * before rendering and restores the previous framebuffer afterwards. Under a
+     * shader pack the feed is a full copy of the main target
+     * ({@code blitMainIntoFeed}), which already contains the body, so the rebind
+     * is redundant there but harmless.
      */
     @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event)
     {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES)
             return;
-        if (!active && !FeedManager.isCapturing())
+        boolean cap = FeedManager.isCapturing();
+        if (!active && !cap)
             return;
 
         Minecraft mc = Minecraft.getInstance();
@@ -364,12 +373,38 @@ public final class ClientCameraHooks
         double y = Mth.lerp(partialTick, player.yOld, player.getY()) - camPos.y;
         double z = Mth.lerp(partialTick, player.zOld, player.getZ()) - camPos.z;
 
+        // During a monitor feed capture, vanilla's renderLevel has already
+        // switched the bound framebuffer back to the main render target by the
+        // AFTER_ENTITIES stage, so drawing here would land in the main target and
+        // never reach the offscreen feed texture (blocks render earlier, while
+        // the feed target is still bound, which is why terrain shows but the
+        // player did not). Rebind the feed target for this draw, then restore the
+        // exact previous framebuffer + viewport so the rest of renderLevel is
+        // undisturbed. (Under shaders the feed is a copy of the main target, so
+        // this is redundant but harmless.)
+        RenderTarget feedTarget = cap ? FeedManager.captureTarget : null;
+        int prevFbo = 0;
+        int[] prevViewport = null;
+        if (feedTarget != null)
+        {
+            prevFbo = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
+            prevViewport = new int[4];
+            GL11.glGetIntegerv(GL11.GL_VIEWPORT, prevViewport);
+            feedTarget.bindWrite(true);
+        }
+
         EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
         dispatcher.render(player, x, y, z, Mth.lerp(partialTick, player.yRotO, player.getYRot()),
                 partialTick, event.getPoseStack(), buffers,
                 dispatcher.getPackedLightCoords(player, partialTick));
         buffers.endBatch();
+
+        if (feedTarget != null)
+        {
+            GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, prevFbo);
+            GL11.glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+        }
     }
 
     /**

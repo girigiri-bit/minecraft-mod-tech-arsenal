@@ -120,6 +120,13 @@ public final class FeedManager
     private static final Map<BlockPos, Feed> FEEDS = new HashMap<>();
     private static long frameCounter;
     private static boolean capturing;
+    // Feed target currently being captured (null when idle). Exposed so the
+    // "see yourself" overlay render (ClientCameraHooks.onRenderLevelStage) can
+    // rebind it: vanilla's renderLevel switches the bound framebuffer back to
+    // the main target before the AFTER_ENTITIES stage, so an entity drawn there
+    // would land in the main target (and be lost from the feed) instead.
+    @Nullable
+    public static RenderTarget captureTarget;
 
     // Masked-capture state (only used while a shader pack is active). Full-
     // resolution backup of the composited main framebuffer, snapshotted one
@@ -352,6 +359,7 @@ public final class FeedManager
             }
             feed.target.clear(Minecraft.ON_OSX);
             feed.target.bindWrite(true);
+            captureTarget = feed.target;
             mc.gameRenderer.renderLevel(1.0F, Util.getNanos(), new PoseStack());
             if (shaders)
                 blitMainIntoFeed(mc, feed);
@@ -373,6 +381,7 @@ public final class FeedManager
             mc.getMainRenderTarget().bindWrite(true);
             mc.setCameraEntity(previousCamera != null ? previousCamera : mc.player);
             capturing = false;
+            captureTarget = null;
         }
     }
 
