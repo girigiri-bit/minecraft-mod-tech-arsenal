@@ -3,12 +3,14 @@ package com.girigiri.techarsenal.client;
 import com.girigiri.techarsenal.TechArsenal;
 import com.girigiri.techarsenal.client.feed.FeedManager;
 import com.girigiri.techarsenal.entity.CameraEntity;
+import com.girigiri.techarsenal.event.RemoteCameraView;
 import com.girigiri.techarsenal.item.CameraMonitorItem;
 import com.girigiri.techarsenal.item.SatelliteRemoteItem;
 import com.girigiri.techarsenal.network.CloseCameraViewPacket;
 import com.girigiri.techarsenal.network.CycleCameraViewPacket;
 import com.girigiri.techarsenal.network.ModNetwork;
 import com.girigiri.techarsenal.network.OpenCameraViewPacket;
+import com.girigiri.techarsenal.network.PanCameraViewPacket;
 import com.girigiri.techarsenal.registry.ModEntities;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
@@ -21,6 +23,7 @@ import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
@@ -30,6 +33,7 @@ import net.minecraftforge.client.event.MovementInputUpdateEvent;
 import net.minecraftforge.client.event.RenderHandEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.event.RenderPlayerEvent;
+import net.minecraftforge.client.event.ViewportEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -82,6 +86,15 @@ public final class ClientCameraHooks
     // Sneak-to-close debounce for the remote view (send CloseCameraViewPacket once
     // per hold instead of every tick).
     private static boolean shiftCloseLatch;
+
+    // --- CAM mouse-pan state ---
+    private static float panBaseYaw;                       // camera facing at open/switch
+    @Nullable private static Entity remoteCamEntity;       // detect server-side cycles
+    private static float lastSentYaw, lastSentPitch;
+
+    // --- CAM zoom state ---
+    private static final float[] ZOOM_LEVELS = {1.0F, 2.0F, 4.0F, 8.0F};
+    private static int zoomIndex;
 
     private ClientCameraHooks()
     {
@@ -197,6 +210,8 @@ public final class ClientCameraHooks
         {
             ItemStack held = mc.player.getItemInHand(activeHand);
             String label = "CAM-" + CameraMonitorItem.getSelectedId(held);
+            if (zoomIndex > 0)
+                label = label + " x" + (int) ZOOM_LEVELS[zoomIndex];
             if (held.getItem() instanceof CameraMonitorItem
                     && CameraMonitorItem.readCameras(held).size() >= 2)
                 hint = Component.translatable("message.techarsenal.camera_cycle_hint", label);
@@ -238,6 +253,61 @@ public final class ClientCameraHooks
                 ModNetwork.CHANNEL.sendToServer(new CycleCameraViewPacket(1)); // right = next
             }
         }
+    }
+
+    /**
+     * Feeds the player's own mouse-driven yaw/pitch (kept within the pan cone
+     * by the per-tick clamp in {@link #onClientTick}) to the actual camera
+     * angles used for rendering, since the CameraEntity itself never rotates
+     * client-side. Skipped during monitor-feed capture: {@link FeedManager#capture()}
+     * swaps the camera entity and re-fires this same event for offscreen
+     * renders, which must not pick up pan.
+     */
+    @SubscribeEvent
+    public static void onComputeCameraAngles(ViewportEvent.ComputeCameraAngles event)
+    {
+        if (!remoteActive || FeedManager.isCapturing())
+            return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || !(mc.getCameraEntity() instanceof CameraEntity ce) || ce == camera)
+            return;
+        float pt = (float) event.getPartialTick();
+        event.setYaw(mc.player.getViewYRot(pt));
+        event.setPitch(mc.player.getViewXRot(pt));
+    }
+
+    /**
+     * Scroll wheel steps through {@link #ZOOM_LEVELS} while a CAM view is
+     * active. Consumes the scroll (no hotbar switching) whenever remote.
+     */
+    @SubscribeEvent
+    public static void onMouseScroll(InputEvent.MouseScrollingEvent event)
+    {
+        if (!remoteActive)
+            return;
+        event.setCanceled(true);
+        int prev = zoomIndex;
+        if (event.getScrollDelta() > 0.0D && zoomIndex < ZOOM_LEVELS.length - 1)
+            zoomIndex++;
+        else if (event.getScrollDelta() < 0.0D && zoomIndex > 0)
+            zoomIndex--;
+        if (zoomIndex != prev)
+            refreshHint(Minecraft.getInstance());
+    }
+
+    /**
+     * Narrows the FOV by the current zoom factor. Gated on usedConfiguredFov()
+     * (per vanilla's own convention: skip when the base FOV was a special
+     * constant, not the player's configured value) and on FeedManager.isCapturing()
+     * for the same offscreen-render reason as {@link #onComputeCameraAngles}.
+     */
+    @SubscribeEvent
+    public static void onComputeFov(ViewportEvent.ComputeFov event)
+    {
+        if (!remoteActive || FeedManager.isCapturing() || !event.usedConfiguredFov())
+            return;
+        if (zoomIndex > 0)
+            event.setFOV(event.getFOV() / ZOOM_LEVELS[zoomIndex]);
     }
 
     @SubscribeEvent
@@ -282,13 +352,20 @@ public final class ClientCameraHooks
         // server-spawned CameraEntity. The local SAT anchor is the only
         // CameraEntity we ever set ourselves, so anything else that is a
         // CameraEntity is the remote view.
-        boolean nowRemote = mc.getCameraEntity() instanceof CameraEntity e && e != camera;
+        CameraEntity remote = mc.getCameraEntity() instanceof CameraEntity ce && ce != camera ? ce : null;
+        boolean nowRemote = remote != null;
         if (nowRemote && !remoteActive)
         {
             remoteActive = true;
             previousCameraType = mc.options.getCameraType();
             mc.options.setCameraType(CameraType.FIRST_PERSON);
             activeHand = pendingHand;
+            remoteCamEntity = remote;
+            panBaseYaw = remote.getYRot();
+            mc.player.setYRot(remote.getYRot());  mc.player.yRotO = remote.getYRot();
+            mc.player.setXRot(remote.getXRot());  mc.player.xRotO = remote.getXRot();
+            lastSentYaw = remote.getYRot(); lastSentPitch = remote.getXRot();
+            zoomIndex = 0;
             refreshHint(mc);
         }
         else if (!nowRemote && remoteActive)
@@ -301,6 +378,33 @@ public final class ClientCameraHooks
             pendingHand = null;
             attackLatch = false;
             useLatch = false;
+            remoteCamEntity = null;
+            zoomIndex = 0;
+        }
+
+        // --- remote (CAM) view: mouse pan + server-cycle snap-back ---
+        if (remoteActive && mc.getCameraEntity() instanceof CameraEntity ce2 && ce2 != camera)
+        {
+            if (ce2 != remoteCamEntity)   // server cycled to another camera: snap back
+            {
+                remoteCamEntity = ce2;
+                panBaseYaw = ce2.getYRot();
+                mc.player.setYRot(ce2.getYRot());  mc.player.yRotO = ce2.getYRot();
+                mc.player.setXRot(ce2.getXRot());  mc.player.xRotO = ce2.getXRot();
+                zoomIndex = 0;
+            }
+            float dy = Mth.clamp(Mth.degreesDifference(panBaseYaw, mc.player.getYRot()),
+                    -RemoteCameraView.PAN_YAW_RANGE, RemoteCameraView.PAN_YAW_RANGE);
+            mc.player.setYRot(Mth.wrapDegrees(panBaseYaw + dy));
+            mc.player.setXRot(Mth.clamp(mc.player.getXRot(),
+                    RemoteCameraView.PAN_PITCH_MIN, RemoteCameraView.PAN_PITCH_MAX));
+            if (mc.level.getGameTime() % 2L == 0L
+                    && (Math.abs(Mth.degreesDifference(lastSentYaw, mc.player.getYRot())) > 1.0F
+                     || Math.abs(mc.player.getXRot() - lastSentPitch) > 1.0F))
+            {
+                lastSentYaw = mc.player.getYRot(); lastSentPitch = mc.player.getXRot();
+                ModNetwork.CHANNEL.sendToServer(new PanCameraViewPacket(lastSentYaw, lastSentPitch));
+            }
         }
 
         // --- SAT (local) view maintenance ---

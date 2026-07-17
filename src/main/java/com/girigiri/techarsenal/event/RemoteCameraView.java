@@ -11,7 +11,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
@@ -49,6 +52,13 @@ import java.util.UUID;
 @Mod.EventBusSubscriber(modid = TechArsenal.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class RemoteCameraView
 {
+    // Mouse-pan tuning (shared with the client, which references these
+    // constants directly).
+    public static final float PAN_YAW_RANGE  = 100.0F;  // ± from block facing
+    public static final float PAN_PITCH_MIN  = -45.0F;
+    public static final float PAN_PITCH_MAX  =  80.0F;
+    public static final float PAN_BASE_PITCH =  15.0F;   // replaces the two literal 15.0F in open()/switchTo()
+
     private static final Map<UUID, Session> SESSIONS = new HashMap<>();
 
     private RemoteCameraView()
@@ -66,6 +76,7 @@ public final class RemoteCameraView
         Vec3 returnPos;
         float returnYRot;
         float returnXRot;
+        float baseYaw;
     }
 
     /** View position/yaw for a camera block, matching the old client viewPosFor. */
@@ -138,7 +149,7 @@ public final class RemoteCameraView
         Vec3 viewPos = viewPosFor(link.pos(), yaw);
 
         CameraEntity newCam = new CameraEntity(ModEntities.CAMERA.get(), level);
-        newCam.moveTo(viewPos.x, viewPos.y, viewPos.z, yaw, 15.0F);
+        newCam.moveTo(viewPos.x, viewPos.y, viewPos.z, yaw, PAN_BASE_PITCH);
         level.addFreshEntity(newCam);
         // setCamera BEFORE discarding the old entity so the player is never
         // briefly cameraless.
@@ -147,6 +158,7 @@ public final class RemoteCameraView
         session.entity = newCam;
         session.cameraId = link.id();
         session.cameraPos = link.pos();
+        session.baseYaw = yaw;
         if (old != null)
             old.discard();
 
@@ -206,9 +218,10 @@ public final class RemoteCameraView
         session.returnXRot = player.getXRot();
         session.cameraId = chosen.id();
         session.cameraPos = chosen.pos();
+        session.baseYaw = yaw;
 
         CameraEntity cam = new CameraEntity(ModEntities.CAMERA.get(), level);
-        cam.moveTo(viewPos.x, viewPos.y, viewPos.z, yaw, 15.0F);
+        cam.moveTo(viewPos.x, viewPos.y, viewPos.z, yaw, PAN_BASE_PITCH);
         level.addFreshEntity(cam);
         session.entity = cam;
         player.setCamera(cam);
@@ -278,6 +291,18 @@ public final class RemoteCameraView
         switchTo(player, session, chosen, chosenState, stack);
     }
 
+    public static void pan(ServerPlayer player, float yaw, float pitch)
+    {
+        if (!Float.isFinite(yaw) || !Float.isFinite(pitch))
+            return;
+        Session session = SESSIONS.get(player.getUUID());
+        if (session == null || session.entity == null || session.entity.isRemoved())
+            return;
+        float dy = Mth.clamp(Mth.degreesDifference(session.baseYaw, yaw), -PAN_YAW_RANGE, PAN_YAW_RANGE);
+        session.entity.setYRot(Mth.wrapDegrees(session.baseYaw + dy));
+        session.entity.setXRot(Mth.clamp(pitch, PAN_PITCH_MIN, PAN_PITCH_MAX));
+    }
+
     public static void close(ServerPlayer player, boolean restorePosition)
     {
         Session session = SESSIONS.remove(player.getUUID());
@@ -295,6 +320,7 @@ public final class RemoteCameraView
             if (target != null)
                 player.teleportTo(target, session.returnPos.x, session.returnPos.y, session.returnPos.z,
                         session.returnYRot, session.returnXRot);
+            player.resetFallDistance();
         }
     }
 
@@ -330,6 +356,14 @@ public final class RemoteCameraView
             return;
         }
 
+        // The client body free-falls against the server's per-tick camera snap
+        // (ServerPlayer.tick absMoveTo); phantom fallDistance accumulates across
+        // "moved wrongly" corrections. Zero it every tick so it can never mature
+        // into fall damage — during the session or right after it.
+        player.resetFallDistance();
+        // The parked body may have its eyes in water at the camera perch.
+        player.setAirSupply(player.getMaxAirSupply());
+
         // Periodically re-validate the camera the player is currently viewing.
         // Its chunk is loaded (the player is standing there), so this is cheap.
         if (player.tickCount % 20 == 0
@@ -343,11 +377,29 @@ public final class RemoteCameraView
     @SubscribeEvent
     public static void onLivingAttack(LivingAttackEvent event)
     {
-        if (event.getEntity() instanceof ServerPlayer player && SESSIONS.containsKey(player.getUUID()))
+        if (!(event.getEntity() instanceof ServerPlayer player) || !SESSIONS.containsKey(player.getUUID()))
+            return;
+
+        DamageSource source = event.getSource();
+        // /kill and void damage must never be swallowed: end the view but let the
+        // damage through (death path in onPlayerTick handles the rest).
+        if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))
         {
+            close(player, true);
+            return;
+        }
+        if (source.getEntity() != null)
+        {
+            // Genuine attacker (mob melee, player, projectile, creeper blast):
+            // keep the v0.9 design — cancel the hit and end the view.
             event.setCanceled(true);
             close(player, true);
+            return;
         }
+        // Environmental / self-inflicted damage (fall from the teleport tug-of-war,
+        // suffocation at the camera perch, drowning, cactus, fire...): caused by us
+        // parking the body at the camera. Swallow it and keep the session alive.
+        event.setCanceled(true);
     }
 
     @SubscribeEvent

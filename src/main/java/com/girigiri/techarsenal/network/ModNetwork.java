@@ -30,5 +30,7 @@ public final class ModNetwork
                 CycleCameraViewPacket::encode, CycleCameraViewPacket::decode, CycleCameraViewPacket::handle);
         CHANNEL.registerMessage(id++, CloseCameraViewPacket.class,
                 CloseCameraViewPacket::encode, CloseCameraViewPacket::decode, CloseCameraViewPacket::handle);
+        CHANNEL.registerMessage(id++, PanCameraViewPacket.class,
+                PanCameraViewPacket::encode, PanCameraViewPacket::decode, PanCameraViewPacket::handle);
     }
 }
